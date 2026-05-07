@@ -1,0 +1,9 @@
+{
+  "name": "sentinel-guest",
+  "version": "1.0.0",
+  "dependencies": {
+    "@line/liff": "^2.28.0",
+    "qrcode": "^1.5.4",
+    "stripe": "^14.0.0"
+  }
+}

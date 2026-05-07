@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="./app-config.js"></script>
+<script>
+(async () => {
+  const cfg = await window.SentinelGuestConfig.load();
+  if (window.location.hostname === 'ainadevelop.github.io') {
+    window.location.replace(cfg.bookingOrigin + window.location.pathname.replace(/^\/detector\/guest/, '') + window.location.search + window.location.hash);
+  }
+})();
+</script>
+<meta name="description" content="HAVEN smart stay operations and entry management">
+<meta property="og:site_name" content="HAVEN">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HAVEN">
+<meta property="og:description" content="HAVEN smart stay operations and entry management">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231D9E75%27/%3E%3Cpath d=%27M18 33l9 9 19-20%27 stroke=%27white%27 stroke-width=%276%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+<title>お支払い - HAVEN</title>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f5f5f5; color: #333; font-family: system-ui, sans-serif; }
+.wrap { padding: 2rem 1.5rem; max-width: 480px; margin: 0 auto; }
+.logo { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+.subtitle { font-size: 14px; color: #888; margin-bottom: 2rem; }
+.card { background: #fff; border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.section-title { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+.summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+.summary-row:last-child { border-bottom: none; font-weight: 600; font-size: 15px; padding-top: 10px; }
+.summary-row .label { color: #666; }
+#card-element { border: 1px solid #ddd; border-radius: 10px; padding: 14px; background: #fafafa; margin-bottom: 1rem; }
+#card-element.focused { border-color: #1D9E75; background: #fff; }
+#express-checkout { margin-bottom: 1rem; }
+#express-checkout:not(.is-visible) { display: none; }
+.wallet-help { font-size: 12px; color: #6b7280; margin: 0 0 12px; line-height: 1.6; display: none; }
+.wallet-help a { color: #1D9E75; text-decoration: none; }
+.wallet-help a:hover { text-decoration: underline; }
+.line-payment-note { margin-bottom: 12px; padding: 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #dbe4ee; font-size: 12px; color: #475569; line-height: 1.7; display: none; }
+.btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; background: #1D9E75; color: #fff; }
+.btn:hover { opacity: 0.9; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { background: #fff; color: #1D9E75; border: 1px solid #cfe8de; text-decoration: none; display: inline-block; text-align: center; }
+.back { color: #888; text-decoration: none; font-size: 14px; display: block; margin-bottom: 1rem; }
+.error { color: #E24B4A; font-size: 13px; margin-bottom: 1rem; display: none; }
+.member-box { margin-bottom: 1rem; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; background: #f9fafb; }
+.member-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; cursor: pointer; }
+.member-summary { margin-top: 10px; font-size: 12px; color: #4b5563; line-height: 1.6; display: none; }
+.secure { text-align: center; font-size: 12px; color: #aaa; margin-top: 1rem; }
+.secure a { color: #1D9E75; text-decoration: none; }
+.secure a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="javascript:history.back()" class="back">← 戻る</a>
+  <div class="logo">HAVEN</div>
+  <div class="subtitle">お支払い</div>
+
+  <div class="card">
+    <div class="section-title">予約内容</div>
+    <div class="summary-row"><span class="label">お名前</span><span id="s-guest"></span></div>
+    <div class="summary-row"><span class="label">部屋</span><span id="s-unit"></span></div>
+    <div class="summary-row"><span class="label">チェックイン</span><span id="s-checkin"></span></div>
+    <div class="summary-row"><span class="label">チェックアウト</span><span id="s-checkout"></span></div>
+    <div class="summary-row"><span class="label">合計</span><span id="s-total"></span></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">カード情報</div>
+    <div id="express-checkout"></div>
+    <div class="line-payment-note" id="line-payment-note"></div>
+    <div class="wallet-help" id="wallet-help"></div>
+    <div id="card-element"></div>
+    <div class="error" id="error"></div>
+    <button class="btn" id="pay-btn" onclick="pay()">支払う</button>
+    <div class="secure">Stripeによる安全な決済</div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+let guestConfig = window.SentinelGuestConfig.defaults;
+const DEFAULT_VISA_SECURE_URL = 'https://www.visa.co.jp/run-your-business/small-business-tools/payment-technology/visa-secure.html';
+const MEMBER_PROFILE_KEY = 'sentinel_member_profile';
+
+function guestApiUrl(path) {
+  const base = window.location.hostname === 'ainadevelop.github.io'
+    ? guestConfig.bookingOrigin
+    : window.location.origin;
+  return base.replace(/\/+$/, '') + path;
+}
+
+document.getElementById('s-guest').textContent   = params.get('guest');
+document.getElementById('s-unit').textContent    = params.get('unit') + '号室';
+document.getElementById('s-checkin').textContent  = params.get('checkin');
+document.getElementById('s-checkout').textContent = params.get('checkout');
+document.getElementById('s-total').textContent    = '¥' + Number(params.get('total')).toLocaleString();
+
+let stripe;
+let elements;
+let card;
+let visaSecureUrl = DEFAULT_VISA_SECURE_URL;
+let bookingBaseUrl = window.location.origin;
+let memberProfile = null;
+
+/** Stripe return_url は絶対URL必須。/api/config の bookingUrl が origin のみだと /guest/ 配下の本番で complete.html が404になる。 */
+function stripeCompleteReturnBase() {
+  const { origin, pathname } = window.location;
+  if (!pathname || pathname === '/') return origin;
+  const basePath = pathname.replace(/\/[^/]+\/?$/, '').replace(/\/+$/, '');
+  return (basePath ? origin + basePath : origin).replace(/\/+$/, '');
+}
+
+function formatMemberLabel(profile) {
+  if (!profile) return '';
+  const parts = [];
+  if (profile.name) parts.push(`氏名: ${profile.name}`);
+  if (profile.phone) parts.push(`電話: ${profile.phone}`);
+  if (profile.country) parts.push(`国: ${profile.country}`);
+  return parts.join(' / ');
+}
+
+function loadMemberProfile() {
+  try {
+    const raw = localStorage.getItem(MEMBER_PROFILE_KEY) || '';
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      name: String(parsed.name || '').trim(),
+      phone: String(parsed.phone || '').trim(),
+      country: String(parsed.country || '').trim()
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
+function renderMemberProfileOption() {
+  if (isLineInAppBrowser()) return;
+  const cardElement = document.getElementById('card-element');
+  if (!cardElement) return;
+  memberProfile = loadMemberProfile();
+  if (!memberProfile) return;
+  const memberBox = document.createElement('div');
+  memberBox.className = 'member-box';
+  memberBox.innerHTML = `
+    <label class="member-toggle">
+      <input type="checkbox" id="member-toggle" />
+      登録済み会員情報を利用
+    </label>
+    <div class="member-summary" id="member-summary"></div>
+  `;
+  cardElement.parentNode.insertBefore(memberBox, cardElement);
+  const toggle = document.getElementById('member-toggle');
+  const summary = document.getElementById('member-summary');
+  const text = formatMemberLabel(memberProfile);
+  summary.textContent = text || '登録済み情報を読み込めませんでした。';
+  toggle.addEventListener('change', () => {
+    summary.style.display = toggle.checked ? 'block' : 'none';
+  });
+}
+
+function buildStripeConfig(data = {}) {
+  const key = String(data.publishableKey || guestConfig.publishableKey || '').trim();
+  return {
+    publishableKey: key,
+    bookingUrl: data.bookingUrl || guestConfig.bookingOrigin,
+    visaSecureUrl: data.visaSecureUrl || DEFAULT_VISA_SECURE_URL
+  };
+}
+
+async function loadStripeConfig() {
+  try {
+    const res = await fetch(guestApiUrl('/api/config'));
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Stripe設定の取得に失敗しました');
+    }
+    return buildStripeConfig(data);
+  } catch (_error) {
+    return buildStripeConfig({});
+  }
+}
+
+function renderVisaSecureLink() {
+  document.querySelector('.secure').innerHTML = `Stripeによる安全な決済 / <a href="${visaSecureUrl}" target="_blank" rel="noopener noreferrer">Visa Secureについて</a>`;
+}
+
+function isLineInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  return /Line\//i.test(ua) || /\bLIFF\b/i.test(ua);
+}
+
+function showWalletHelp(message, withExternalLink = false) {
+  const helpEl = document.getElementById('wallet-help');
+  if (!helpEl) return;
+  const text = String(message || '').replace(/</g, '&lt;');
+  if (withExternalLink) {
+    const currentUrl = window.location.href;
+    helpEl.innerHTML = `${text}<br><a href="${currentUrl}" target="_blank" rel="noopener noreferrer">外部ブラウザで開く（Google Pay を試す）</a>`;
+  } else {
+    helpEl.textContent = text;
+  }
+  helpEl.style.display = 'block';
+}
+
+function showLinePaymentNote(message) {
+  const noteEl = document.getElementById('line-payment-note');
+  if (!noteEl) return;
+  noteEl.textContent = String(message || '');
+  noteEl.style.display = message ? 'block' : 'none';
+}
+
+function payerFromForm() {
+  const memberToggle = document.getElementById('member-toggle');
+  const useMemberProfile = Boolean(memberToggle && memberToggle.checked && memberProfile);
+  const guestName = useMemberProfile ? (memberProfile.name || params.get('guest') || '') : (params.get('guest') || '');
+  const phoneValue = useMemberProfile ? (memberProfile.phone || params.get('phone_normalized') || params.get('phone')) : (params.get('phone_normalized') || params.get('phone'));
+  return { guestName, phoneValue };
+}
+
+async function initStripe() {
+  const errEl = document.getElementById('error');
+
+  try {
+    guestConfig = await window.SentinelGuestConfig.load();
+    const data = await loadStripeConfig();
+
+    if (data.visaSecureUrl) {
+      visaSecureUrl = data.visaSecureUrl;
+    }
+    if (data.bookingUrl) {
+      bookingBaseUrl = String(data.bookingUrl).replace(/\/+$/, '');
+    }
+    renderVisaSecureLink();
+
+    if (!data.publishableKey) {
+      throw new Error('決済設定を取得できませんでした。しばらくしてから再度お試しください。');
+    }
+    stripe = Stripe(data.publishableKey);
+    elements = stripe.elements();
+    card = elements.create('card', {
+      hidePostalCode: true,
+      style: {
+        base: { fontSize: '16px', color: '#111', '::placeholder': { color: '#aaa' } }
+      }
+    });
+    card.mount('#card-element');
+    card.on('focus', () => document.getElementById('card-element').classList.add('focused'));
+    card.on('blur',  () => document.getElementById('card-element').classList.remove('focused'));
+
+    const expressEl = document.getElementById('express-checkout');
+    const inLine = isLineInAppBrowser();
+    if (inLine) {
+      if (expressEl) {
+        expressEl.classList.remove('is-visible');
+      }
+      showLinePaymentNote('LINE内ではGoogle Payなどの自動入力を表示していません。カード情報を直接入力してください。');
+    } else {
+      const totalYen = Math.max(1, Math.round(Number(params.get('total')) || 0));
+      const paymentRequest = stripe.paymentRequest({
+        country: 'JP',
+        currency: 'jpy',
+        total: { label: 'HAVEN', amount: totalYen },
+        requestPayerName: true,
+        requestPayerEmail: true
+      });
+      const canMakePayment = await paymentRequest.canMakePayment();
+      if (canMakePayment && expressEl) {
+        expressEl.classList.add('is-visible');
+        const prButton = elements.create('paymentRequestButton', {
+          paymentRequest,
+          style: { paymentRequestButton: { type: 'buy', theme: 'dark', height: '44px' } }
+        });
+        prButton.mount('#express-checkout');
+
+        paymentRequest.on('paymentmethod', async (ev) => {
+          const errEl = document.getElementById('error');
+          try {
+            const { guestName, phoneValue } = payerFromForm();
+            const res = await fetch(guestApiUrl('/api/create-payment-intent'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                guest: guestName,
+                unit: params.get('unit'),
+                checkin: params.get('checkin'),
+                checkout: params.get('checkout'),
+                phone: phoneValue
+              })
+            });
+            const payload = await res.json();
+            const { clientSecret, error: serverError } = payload;
+            if (!res.ok || serverError || !clientSecret) {
+              throw new Error(serverError || '決済開始に失敗しました');
+            }
+            localStorage.setItem('sentinel_last_client_secret', clientSecret);
+            localStorage.setItem('sentinel_last_guest', params.get('guest') || '');
+
+            const nonce = Date.now();
+            const returnUrl = `${stripeCompleteReturnBase()}/complete.html?guest=${encodeURIComponent(guestName)}&v=${nonce}`;
+            const { error, paymentIntent } = await stripe.confirmCardPayment(
+              clientSecret,
+              { payment_method: ev.paymentMethod.id, return_url: returnUrl },
+              { redirect: 'if_required' }
+            );
+            if (error) {
+              throw error;
+            }
+            if (paymentIntent && paymentIntent.id) {
+              localStorage.setItem('sentinel_last_pi', paymentIntent.id);
+              ev.complete('success');
+              window.location.href = 'complete.html?pi=' + paymentIntent.id + '&guest=' + encodeURIComponent(guestName) + '&v=' + Date.now();
+              return;
+            }
+            ev.complete('success');
+          } catch (err) {
+            console.error('[paymentRequest paymentmethod]', err);
+            ev.complete('fail');
+            errEl.textContent = err.message || 'ウォレット決済に失敗しました';
+            errEl.style.display = 'block';
+          }
+        });
+      } else {
+        showWalletHelp('この端末/ブラウザではウォレット決済が利用できません。カード情報を手入力してください。');
+      }
+    }
+  } catch (error) {
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
+    document.getElementById('pay-btn').disabled = true;
+  }
+}
+
+async function pay() {
+  const btn   = document.getElementById('pay-btn');
+  const errEl = document.getElementById('error');
+
+  if (!stripe || !card) {
+    errEl.textContent = 'Stripeの初期化が完了していません';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = '処理中...';
+  errEl.style.display = 'none';
+
+  try {
+    const { guestName, phoneValue } = payerFromForm();
+    const res = await fetch(guestApiUrl('/api/create-payment-intent'), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        guest:    guestName,
+        unit:     params.get('unit'),
+        checkin:  params.get('checkin'),
+        checkout: params.get('checkout'),
+        phone:    phoneValue
+      })
+    });
+
+    const { clientSecret, error: serverError } = await res.json();
+    if (!res.ok || serverError || !clientSecret) {
+      throw new Error(serverError || '決済開始に失敗しました');
+    }
+    localStorage.setItem('sentinel_last_client_secret', clientSecret);
+    localStorage.setItem('sentinel_last_guest', params.get('guest') || '');
+
+    const nonce = Date.now();
+    const returnUrl = `${stripeCompleteReturnBase()}/complete.html?guest=${encodeURIComponent(guestName)}&v=${nonce}`;
+    const { error, paymentIntent } = await stripe.confirmCardPayment(
+      clientSecret,
+      {
+        payment_method: { card },
+        return_url: returnUrl
+      },
+      {
+        redirect: 'if_required'
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    // Non-redirect path (no 3DS) lands here; 3DS flow returns via return_url.
+    if (paymentIntent && paymentIntent.id) {
+      localStorage.setItem('sentinel_last_pi', paymentIntent.id);
+      window.location.href = 'complete.html?pi=' + paymentIntent.id + '&guest=' + encodeURIComponent(guestName) + '&v=' + Date.now();
+      return;
+    }
+  } catch (error) {
+    const paymentIntentId = localStorage.getItem('sentinel_last_pi') || '';
+    const reportParams = new URLSearchParams({
+      payment_error: '1',
+      payment_error_message: String(error.message || '決済に失敗しました').slice(0, 160),
+      payment_intent: paymentIntentId
+    });
+    errEl.innerHTML = `${error.message || '決済に失敗しました'}<br><a href="confirm.html?${reportParams.toString()}">予約確認ページでサポート導線を表示</a>`;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '支払う';
+  }
+}
+
+initStripe();
+renderVisaSecureLink();
+renderMemberProfileOption();
+</script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="./app-config.js"></script>
+<script src="./liff.js"></script>
+<script>
+(async () => {
+  const cfg = await window.SentinelGuestConfig.load();
+  if (window.location.hostname === 'ainadevelop.github.io') {
+    window.location.replace(cfg.bookingOrigin + window.location.pathname.replace(/^\/detector\/guest/, '') + window.location.search + window.location.hash);
+  }
+})();
+</script>
+<meta name="description" content="HAVEN smart stay operations and entry management">
+<meta property="og:site_name" content="HAVEN">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HAVEN">
+<meta property="og:description" content="HAVEN smart stay operations and entry management">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231D9E75%27/%3E%3Cpath d=%27M18 33l9 9 19-20%27 stroke=%27white%27 stroke-width=%276%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+<title>予約完了 - HAVEN</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f5f5f5; color: #333; font-family: system-ui, sans-serif; }
+.wrap { padding: 2rem 1.5rem; max-width: 480px; margin: 0 auto; text-align: center; }
+.icon { width: 64px; height: 64px; background: #1D9E75; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 2rem auto 1rem; }
+.icon svg { width: 32px; height: 32px; }
+.title { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 0.5rem; }
+.subtitle { font-size: 14px; color: #888; margin-bottom: 2rem; }
+.qr-box { background: #fff; border-radius: 16px; padding: 2rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: center; }
+#qrcode { display: flex; align-items: center; justify-content: center; width: 200px; height: 200px; }
+#qrcode img { width: 200px; height: 200px; border-radius: 8px; border: 1px solid #e8e8e8; }
+.qr-hint { font-size: 12px; color: #888; margin-top: 1rem; }
+.qr-error { margin-top: 10px; font-size: 12px; color: #E24B4A; }
+.notify-error { margin-top: 10px; font-size: 12px; color: #7f1d1d; background: #fff1f0; border: 1px solid #ffd6d3; border-radius: 10px; padding: 10px; line-height: 1.6; }
+.notify-actions { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.notify-actions a, .notify-actions button { border: 1px solid #d1d5db; border-radius: 10px; background: #fff; color: #374151; font-size: 12px; padding: 8px; text-align: center; text-decoration: none; cursor: pointer; }
+.entry-url-wrap { margin-top: 14px; width: 100%; }
+.entry-url { width: 100%; border: 1px solid #ddd; border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #333; background: #fafafa; }
+.entry-actions { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.entry-btn { border: 1px solid #d9e9e2; background: #fff; color: #1D9E75; border-radius: 10px; padding: 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.entry-btn.primary { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.share-btn { width: 100%; margin-top: 10px; border: 1px solid #06c755; background: #06c755; color: #fff; border-radius: 10px; padding: 11px 12px; font-size: 13px; font-weight: 600; cursor: pointer; display: none; }
+.share-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.share-status { margin-top: 8px; font-size: 12px; color: #666; min-height: 16px; }
+.card { background: #fff; border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); text-align: left; }
+.step { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; align-items: flex-start; }
+.step:last-child { border-bottom: none; }
+.step-num { width: 24px; height: 24px; background: #1D9E75; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff; flex-shrink: 0; margin-top: 1px; }
+.step-text { font-size: 14px; color: #333; line-height: 1.5; }
+.step-sub { font-size: 12px; color: #888; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  </div>
+  <div class="title">予約完了！</div>
+  <div class="subtitle" id="guest-name">ありがとうございます</div>
+
+  <div class="qr-box" id="qr-container">
+    <div>QRコード</div>
+    <div id="qrcode"></div>
+    <div class="qr-hint">チェックイン当日、このQRをエントランスのスキャナーにかざしてください</div>
+    <div class="entry-url-wrap" id="entry-url-wrap" style="display:none">
+      <input class="entry-url" id="entry-url" readonly>
+      <div class="entry-actions">
+        <button class="entry-btn" type="button" id="copy-entry-btn">リンクをコピー</button>
+        <a class="entry-btn primary" id="open-entry-btn" target="_blank" rel="noopener noreferrer">入室リンクを開く</a>
+      </div>
+      <button class="share-btn" type="button" id="share-qr-btn">LINEのトークにQRを送る</button>
+      <div class="share-status" id="share-status"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-text">このQRコードを保存またはスクリーンショット</div>
+        <div class="step-sub">チェックイン当日に必要です</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-text">チェックイン当日にエントランスへ</div>
+        <div class="step-sub">フロント不要・24時間チェックイン可能</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-text">QRをスキャナーにかざす</div>
+        <div class="step-sub">自動でドアが解錠されます</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-text">チェックアウトは自動処理</div>
+        <div class="step-sub">退室後、自動で施錠されます</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let guestConfig = window.SentinelGuestConfig.defaults;
+if (window.location.hostname === 'liff.line.me') {
+  window.SentinelGuestConfig.load().then((cfg) => {
+    window.location.replace(cfg.bookingOrigin + '/complete.html' + window.location.search);
+  }).catch(() => {
+    window.location.replace(window.SentinelGuestConfig.defaults.bookingOrigin + '/complete.html' + window.location.search);
+  });
+}
+
+const params = new URLSearchParams(window.location.search);
+const guestParam = params.get('guest');
+
+function guestApiUrl(path) {
+  const base = window.location.hostname === 'ainadevelop.github.io'
+    ? guestConfig.bookingOrigin
+    : window.location.origin;
+  return base.replace(/\/+$/, '') + path;
+}
+
+/** Stripe 予約確定・LINE通知は FastAPI（cam）のみ実装。Vercel 上の同一パスは 404 になるため apiBaseUrl を使う。 */
+function sentinelBackendUrl(path) {
+  const base = String(guestConfig.apiBaseUrl || 'https://cam.ainadevelop.com').replace(/\/+$/, '');
+  return base + path;
+}
+
+function extractPaymentIdFromClientSecret(value) {
+  if (!value) return null;
+  const marker = '_secret_';
+  const idx = value.indexOf(marker);
+  if (idx <= 0) return null;
+  const head = value.slice(0, idx);
+  return head.startsWith('pi_') ? head : null;
+}
+
+const paymentId =
+  params.get('pi') ||
+  params.get('payment_intent') ||
+  extractPaymentIdFromClientSecret(params.get('payment_intent_client_secret'));
+
+const guest = guestParam || '';
+let paymentCompleteNotice = null;
+
+function buildSupportReport(message) {
+  const lines = [
+    `payment_intent=${paymentId || '-'}`,
+    `guest=${guest || '-'}`,
+    `error_message=${String(message || 'notification_failed').slice(0, 160)}`,
+    `time=${new Date().toISOString()}`
+  ];
+  return lines.join('\n');
+}
+
+function renderNotificationError(message) {
+  paymentCompleteNotice = message || '決済完了通知の送信に失敗しました。';
+  const qr = document.getElementById('qrcode');
+  const report = buildSupportReport(paymentCompleteNotice);
+  const html = `
+    <div class="notify-error">
+      ${paymentCompleteNotice}<br>QRは利用できますが、反映が遅れる場合があります。
+      <div class="notify-actions">
+        <a href="support.html">サポートへ連絡</a>
+        <button type="button" id="copy-notify-report">報告内容をコピー</button>
+      </div>
+    </div>
+  `;
+  qr.insertAdjacentHTML('beforeend', html);
+  const btn = document.getElementById('copy-notify-report');
+  if (btn) {
+    btn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(report);
+        btn.textContent = 'コピーしました';
+      } catch (_error) {}
+    };
+  }
+}
+
+async function notifyPaymentCompleteOnce() {
+  if (!paymentId) return;
+  const markerKey = `sentinel_line_notified_${paymentId}`;
+  if (localStorage.getItem(markerKey) === '1') return;
+
+  const draftRaw = localStorage.getItem('sentinel_reservation_draft') || '';
+  const draft = draftRaw ? new URLSearchParams(draftRaw) : new URLSearchParams();
+  const payload = {
+    payment_id: paymentId,
+    guest: guest || draft.get('guest') || 'ゲスト',
+    unit: draft.get('unit') || '',
+    checkin: draft.get('checkin') || '',
+    checkout: draft.get('checkout') || '',
+    total: draft.get('total') || ''
+  };
+
+  try {
+    guestConfig = await window.SentinelGuestConfig.load();
+    const res = await fetch(sentinelBackendUrl('/api/guest/payment-complete'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      let errorMessage = '決済完了通知の送信に失敗しました。';
+      try {
+        const errorData = await res.json();
+        if (errorData?.detail?.error) {
+          errorMessage = `決済完了通知エラー: ${errorData.detail.error}`;
+        }
+      } catch (_error) {}
+      renderNotificationError(errorMessage);
+      return;
+    }
+    localStorage.setItem(markerKey, '1');
+  } catch (e) {
+    renderNotificationError('決済完了通知を送信できませんでした。');
+  }
+}
+
+async function verifyPaymentIntentSucceeded() {
+  if (!paymentId) return false;
+  try {
+    const res = await fetch(
+      guestApiUrl('/api/payment-status?payment_intent=' + encodeURIComponent(paymentId))
+    );
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.status === 'succeeded';
+  } catch (e) {
+    return false;
+  }
+}
+
+if (guest) {
+  document.getElementById('guest-name').textContent = guest + ' 様、ありがとうございます';
+}
+
+async function setupLiffShare(entryUrl, qrImageUrl) {
+  const shareBtn = document.getElementById('share-qr-btn');
+  const shareStatus = document.getElementById('share-status');
+  if (!window.SentinelGuestLiff) {
+    return;
+  }
+
+  const liffState = await window.SentinelGuestLiff.init(guestConfig);
+  if (!liffState.initialized || !window.SentinelGuestLiff.canUseShareTargetPicker()) {
+    return;
+  }
+
+  shareBtn.style.display = 'block';
+  shareBtn.addEventListener('click', async () => {
+    shareBtn.disabled = true;
+    shareStatus.textContent = 'LINEを開いています...';
+
+    try {
+      const result = await window.liff.shareTargetPicker([
+        {
+          type: 'image',
+          originalContentUrl: qrImageUrl,
+          previewImageUrl: qrImageUrl
+        },
+        {
+          type: 'text',
+          text: `入室用QRです。\n${entryUrl}`
+        }
+      ]);
+
+      if (result === false) {
+        shareStatus.textContent = '共有がキャンセルされました';
+      } else {
+        shareStatus.textContent = 'LINEのトークに送信しました';
+      }
+    } catch (_error) {
+      shareStatus.textContent = 'LINE共有に失敗しました';
+    } finally {
+      shareBtn.disabled = false;
+    }
+  }, { once: false });
+}
+
+async function initCompletePage() {
+  guestConfig = await window.SentinelGuestConfig.load();
+  const qr = document.getElementById('qrcode');
+  if (!paymentId) {
+    qr.innerHTML = '<div class="qr-error">決済情報を取得できませんでした。再読み込み後も表示されない場合は、支払い完了メール/履歴を確認して管理者へ連絡してください。</div>';
+    return;
+  }
+
+  const succeeded = await verifyPaymentIntentSucceeded();
+  if (!succeeded) {
+    qr.innerHTML = '<div class="qr-error">支払い完了を確認できませんでした。時間をおいて再読み込みしてください。解決しない場合はサポートへ連絡してください。</div>';
+    return;
+  }
+
+  const entryParams = new URLSearchParams({ pi: paymentId });
+  if (guest) {
+    entryParams.set('guest', guest);
+  }
+  const entryUrl = `${guestConfig.bookingOrigin}/entry.html?` + entryParams.toString();
+  const entryWrap = document.getElementById('entry-url-wrap');
+  const entryInput = document.getElementById('entry-url');
+  const openBtn = document.getElementById('open-entry-btn');
+  const copyBtn = document.getElementById('copy-entry-btn');
+  const img = document.createElement('img');
+  img.alt = 'entry-qr';
+  const qrOwnApi = guestApiUrl('/api/qr?data=' + encodeURIComponent(entryUrl) + '&t=' + Date.now());
+  const qrPrimary = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(entryUrl);
+  const qrFallback = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(entryUrl);
+  let triedOwnApi = false;
+  let triedFallback = false;
+  img.src = qrOwnApi;
+  img.onerror = () => {
+    if (!triedOwnApi) {
+      triedOwnApi = true;
+      img.src = qrPrimary;
+      return;
+    }
+    if (!triedFallback) {
+      triedFallback = true;
+      img.src = qrFallback;
+      return;
+    }
+    qr.innerHTML = '<div class="qr-error">QR生成に失敗しました。下の入室リンクを開いてご利用ください。</div>';
+  };
+  qr.appendChild(img);
+
+  entryInput.value = entryUrl;
+  openBtn.href = entryUrl;
+  entryWrap.style.display = 'block';
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(entryUrl);
+      copyBtn.textContent = 'コピーしました';
+      setTimeout(() => { copyBtn.textContent = 'リンクをコピー'; }, 1500);
+    } catch (e) {
+      entryInput.focus();
+      entryInput.select();
+      alert('コピーできない場合は、表示されたURLを長押ししてコピーしてください。');
+    }
+  });
+  setupLiffShare(entryUrl, qrOwnApi);
+  const sessionId = params.get('session_id') || paymentId;
+  localStorage.setItem('sentinel_payment_complete', '1');
+  localStorage.setItem('sentinel_payment_complete_pi', paymentId);
+  localStorage.setItem('sentinel_qr_data', qrOwnApi);
+  localStorage.setItem('sentinel_session_id', sessionId);
+  const _orderEl = document.getElementById('order-number');
+  const _orderNumEl = document.getElementById('order-num-text');
+  if (_orderEl && _orderNumEl) {
+    const _clean = paymentId.replace(/^pi_/, '');
+    _orderNumEl.textContent = '#' + _clean.slice(-8).toUpperCase();
+    _orderEl.style.display = 'block';
+  }
+
+  notifyPaymentCompleteOnce();
+}
+
+initCompletePage();
+</script>
+</body>
+</html>

@@ -1,44 +1,515 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HAVEN</title>
-  <style>
-    body {
-      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
-      color: #222;
-      background: #fafafa;
-      line-height: 1.7;
-    }
-    main {
-      text-align: center;
-    }
-    footer {
-      margin-top: auto;
-      padding-top: 2rem;
-      font-size: 0.875rem;
-      color: #555;
-    }
-    footer a {
-      color: #1a5fb4;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お部屋詳細 - HAVEN</title>
+<script src="./app-config.js"></script>
+<script src="./liff.js"></script>
+<script src="./flow.js"></script>
+<link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <main>
-    <p>HAVEN</p>
-  </main>
-  <footer>
-    <p>© 2026 アーイナ合同会社</p>
-    <p><a href="/tokushoho.html">特定商取引法に基づく表記</a></p>
-  </footer>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="topbar-row">
+        <a class="brand" href="./index.html">
+          <span class="brand-mark">H</span>
+          <span>HAVEN</span>
+        </a>
+        <div class="topbar-actions">
+          <a class="icon-btn" href="./cart.html" aria-label="cart">
+            🛒
+            <span class="badge hidden" data-cart-count>0</span>
+          </a>
+          <a class="icon-btn" href="./menu.html" aria-label="menu">☰</a>
+        </div>
+      </div>
+      <div class="guest-strip" data-guest-strip></div>
+    </header>
+
+    <main>
+      <section class="hero-card">
+        <div class="hero-slider" id="hero-slider">
+          <div class="hero-slide is-active" style="background-image:linear-gradient(135deg, rgba(58,158,79,0.35), rgba(17,34,20,0.5)), url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80');">
+            <div>
+              <div class="eyebrow">HAVEN GUEST RESERVATION</div>
+              <div style="font-size:24px; font-weight:800; line-height:1.3;">静かな滞在を、スマートに。</div>
+            </div>
+          </div>
+          <div class="hero-slide" style="background-image:linear-gradient(135deg, rgba(232,104,26,0.28), rgba(17,34,20,0.52)), url('https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=900&q=80');">
+            <div>
+              <div class="eyebrow" style="color:#ffe8d7;">MOBILE FIRST FLOW</div>
+              <div style="font-size:24px; font-weight:800; line-height:1.3;">予約から決済まで最短数分。</div>
+            </div>
+          </div>
+          <div class="hero-dots" id="hero-dots"></div>
+        </div>
+        <div class="eyebrow">宿泊プランのご案内</div>
+        <h1 class="product-title" id="product-title">HAVEN 宿泊予約</h1>
+        <p class="lead">お部屋選択からお支払いまで、かんたんなステップでご案内します。</p>
+        <p class="help-text" style="margin-top:12px;"><a href="/tokushoho.html" style="color:#1D9E75;font-weight:700;text-decoration:underline;">特定商取引法に基づく表記</a></p>
+        <div class="price-box">
+          <div>
+            <span>税込 / 1予約あたり</span>
+            <strong id="hero-price">¥0</strong>
+          </div>
+          <div class="meta-tags">
+            <span class="meta-tag">税込</span>
+            <span class="meta-tag orange" id="hero-unit-tag">101号室</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">STEP1 チェックイン日</div>
+        <div class="calendar-box">
+          <div class="help-text">チェックイン日・チェックアウト日を選択してください。</div>
+          <div class="inline-fields" style="margin-top:12px;">
+            <div class="field">
+              <label>チェックイン日</label>
+              <input class="input" id="checkin-date-input" type="date">
+            </div>
+            <div class="field">
+              <label>チェックアウト日</label>
+              <input class="input" id="checkout-date-input" type="date">
+            </div>
+          </div>
+          <div style="font-size:20px; font-weight:800; margin-top:8px;" id="checkin-display">-</div>
+          <div class="help-text" id="checkout-display" style="margin-top:4px;"></div>
+          <div class="inline-fields" style="margin-top:12px;">
+            <div class="field">
+              <label>チェックイン時刻</label>
+              <input class="input" id="checkin-time-input" type="time" value="15:00">
+            </div>
+            <div class="field">
+              <label>チェックアウト時刻</label>
+              <input class="input" id="checkout-time-input" type="time" value="10:00">
+            </div>
+          </div>
+          <div class="help-text" style="margin-top:8px;">この時間帯のみ入室用QRコードが有効です。</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">STEP2 ご宿泊人数</div>
+        <div class="actions-row" style="align-items:center;">
+          <div class="qty-box">
+            <button type="button" id="qty-down">−</button>
+            <span id="qty-value">1</span>
+            <button type="button" id="qty-up">＋</button>
+          </div>
+          <div class="summary-box price" style="flex:1;">
+            <div class="summary-line"><span>ご宿泊料金</span><strong id="total-label">¥0</strong></div>
+          </div>
+        </div>
+        <div class="help-text" style="margin-top:12px;">ご宿泊人数を選択してください。</div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">STEP3 お部屋タイプ</div>
+        <div class="tag-row" id="plan-tags"></div>
+        <div class="help-text" style="margin-top:10px;">人数に合うお部屋だけ選択できます。</div>
+        <div class="help-text" id="inventory-summary" style="margin-top:8px;">在庫確認中...</div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">お部屋アメニティ</div>
+        <div class="help-text" id="amenity-title">選択中のお部屋設備</div>
+        <div class="meta-tags" id="amenity-list" style="margin-top:10px;"></div>
+      </section>
+    </main>
+
+    <div class="sticky-cta">
+      <button class="btn" id="add-cart-btn" disabled>予約内容を確認する</button>
+    </div>
+
+    <div class="modal" id="consent-modal">
+      <div class="modal-card">
+        <div class="section-chip">購入前のご確認</div>
+        <div class="summary-box">
+          <div class="help-text">以下の規約に同意のうえ、予約手続きへ進んでください。</div>
+          <div style="margin-top:10px; font-size:13px; line-height:1.7;">
+            ・予約は決済完了時点で成立します。<br>
+            ・購入後は注文番号をもとに確認を行います。<br>
+            ・共有済みの宿泊QRは元の予約者側では利用できません。
+          </div>
+        </div>
+        <label class="check-card" style="margin-top:12px;">
+          <input type="checkbox" id="consent-check">
+          <span>個人情報保護方針および利用規約に同意します。</span>
+        </label>
+        <div class="actions-row" style="margin-top:14px;">
+          <button class="btn-ghost" type="button" id="close-consent">閉じる</button>
+          <button class="btn primary" type="button" id="confirm-add-btn" disabled>予約へ進む</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="footer-slot"></div>
+  </div>
+
+<script>
+const flow = window.SentinelGuestFlow;
+const params = flow.getParams();
+let quantity = Math.max(1, Number(params.quantity || 1));
+let activeUnit = params.unit;
+let inventoryReady = false;
+let inventoryByUnit = {};
+
+const ROOM_NAME_EN = {
+  'スタンダードルーム': 'Standard Room',
+  'デラックスルーム': 'Deluxe Room'
+};
+
+const I18N = {
+  ja: {
+    unitLabel: (unit) => `${unit}号室`,
+    roomBookingTitle: (roomName) => `${roomName} のご予約`,
+    checkoutLabel: (date) => `チェックアウト ${date}`,
+    amenityTitle: (unit) => `${unit}号室の設備`,
+    amenityPending: '設備情報を準備中です',
+    guestCount: (n) => `${n}名様`,
+    inventoryChecking: '残室数確認中',
+    soldOut: '満室',
+    upToGuests: (n) => `${n}名様まで`,
+    remainingRooms: (n) => `残り ${n} 室`,
+    invalidDateRange: 'チェックイン日とチェックアウト日を正しく選択してください。',
+    pastCheckin: 'チェックイン日が過去です。本日以降の日付を選択してください。',
+    inventoryFailed: '在庫情報を取得できませんでした。時間をおいて再度ご確認ください。',
+    roomSoldOut: (unit) => `${unit}号室は満室です。別のお部屋をお選びください。`,
+    roomOverCapacity: (unit, max) => `${unit}号室は${max}名様までです。人数を減らすか、別のお部屋をお選びください。`,
+    roomAvailableSummary: (unit, available, max) => `${unit}号室の残りは ${available} 室です。最大${max}名様まで宿泊できます。`
+  },
+  en: {
+    unitLabel: (unit) => `Room ${unit}`,
+    roomBookingTitle: (roomName) => `${roomName} booking`,
+    checkoutLabel: (date) => `Check-out ${date}`,
+    amenityTitle: (unit) => `Amenities in Room ${unit}`,
+    amenityPending: 'Amenity information is being prepared',
+    guestCount: (n) => `${n} guest${n === 1 ? '' : 's'}`,
+    inventoryChecking: 'Checking availability',
+    soldOut: 'Sold out',
+    upToGuests: (n) => `up to ${n} guests`,
+    remainingRooms: (n) => `${n} rooms left`,
+    invalidDateRange: 'Please select a valid check-in and check-out date range.',
+    pastCheckin: 'Check-in date is in the past. Please select today or later.',
+    inventoryFailed: 'Could not retrieve inventory. Please try again shortly.',
+    roomSoldOut: (unit) => `Room ${unit} is sold out. Please choose another room.`,
+    roomOverCapacity: (unit, max) => `Room ${unit} allows up to ${max} guests. Reduce guests or choose another room.`,
+    roomAvailableSummary: (unit, available, max) => `${available} rooms left in Room ${unit}. Up to ${max} guests allowed.`
+  }
+};
+
+function lang() {
+  return flow.getUiLang() === 'en' ? 'en' : 'ja';
+}
+
+function t() {
+  return I18N[lang()];
+}
+
+function roomName(room) {
+  if (!room) return '';
+  if (lang() === 'en') return ROOM_NAME_EN[room.name] || room.name;
+  return room.name;
+}
+
+function ymd(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function todayYmd() {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return ymd(now);
+}
+
+function addDays(dateText, days) {
+  const d = new Date(`${dateText}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + days);
+  return ymd(d);
+}
+
+function isValidDateRange() {
+  const latest = flow.getParams();
+  const checkin = String(latest.checkin || '').trim();
+  const checkout = String(latest.checkout || '').trim();
+  if (!checkin || !checkout) return false;
+  return checkout > checkin;
+}
+
+function getInventoryMeta(unit) {
+  return inventoryByUnit[String(unit || '')] || null;
+}
+
+function isUnitSoldOut(unit) {
+  const meta = getInventoryMeta(unit);
+  return Boolean(meta && meta.sold_out);
+}
+
+function maxGuestsForUnit(unit) {
+  const meta = getInventoryMeta(unit);
+  return Math.max(1, Number(meta?.max_guests || flow.getRoom(unit).maxGuests || 1));
+}
+
+function isOverCapacity(unit) {
+  return quantity > maxGuestsForUnit(unit);
+}
+
+function isUnitUnavailable(unit) {
+  return isUnitSoldOut(unit) || isOverCapacity(unit);
+}
+
+function isPastCheckinDate() {
+  const latest = flow.getParams();
+  const checkin = String(latest.checkin || '').trim();
+  if (!checkin) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const checkinDate = new Date(`${checkin}T00:00:00`);
+  if (Number.isNaN(checkinDate.getTime())) return false;
+  return checkinDate < today;
+}
+
+function unavailableTitle(unit) {
+  if (isUnitSoldOut(unit)) return `${t().soldOut}`;
+  if (isOverCapacity(unit)) return `${t().upToGuests(maxGuestsForUnit(unit))}`;
+  return '';
+}
+
+function renderHero() {
+  const latest = flow.getParams();
+  const room = flow.getRoom(activeUnit);
+  document.getElementById('product-title').textContent = t().roomBookingTitle(roomName(room));
+  document.getElementById('hero-price').textContent = flow.formatMoney(Number(latest.total || room.price));
+  document.getElementById('hero-unit-tag').textContent = t().unitLabel(room.unit);
+  document.getElementById('checkin-display').textContent = flow.formatDateJP(latest.checkin);
+  document.getElementById('checkout-display').textContent = t().checkoutLabel(flow.formatDateJP(latest.checkout));
+  document.getElementById('checkin-date-input').value = latest.checkin || '';
+  document.getElementById('checkout-date-input').value = latest.checkout || '';
+  document.getElementById('checkin-time-input').value = latest.checkin_time || '15:00';
+  document.getElementById('checkout-time-input').value = latest.checkout_time || '10:00';
+}
+
+function renderAmenities() {
+  const room = flow.getRoom(activeUnit);
+  const amenities = Array.isArray(room.amenities) ? room.amenities : [];
+  document.getElementById('amenity-title').textContent = t().amenityTitle(room.unit);
+  document.getElementById('amenity-list').innerHTML = amenities.length
+    ? amenities.map((item) => `<span class="meta-tag">✓ ${item}</span>`).join('')
+    : `<span class="meta-tag">${t().amenityPending}</span>`;
+}
+
+function renderPlans() {
+  const planTags = document.getElementById('plan-tags');
+  planTags.innerHTML = Object.values(flow.ROOM_CATALOG).map((room) => `
+    <button
+      type="button"
+      class="tag-btn ${room.unit === activeUnit ? 'is-active' : ''}"
+      data-unit="${room.unit}"
+      ${isUnitUnavailable(room.unit) ? 'disabled' : ''}
+      title="${unavailableTitle(room.unit)}"
+    >
+      ${t().unitLabel(room.unit)} / ${roomName(room)}
+      <small style="display:block; margin-top:4px; opacity:0.85;">
+        ${(() => {
+          const meta = getInventoryMeta(room.unit);
+          if (!meta) return t().inventoryChecking;
+          const capacityLabel = t().upToGuests(maxGuestsForUnit(room.unit));
+          if (meta.sold_out) return `${t().soldOut} / ${capacityLabel}`;
+          if (isOverCapacity(room.unit)) return `${capacityLabel}`;
+          return `${t().remainingRooms(meta.available)} / ${capacityLabel}`;
+        })()}
+      </small>
+    </button>
+  `).join('');
+  planTags.querySelectorAll('[data-unit]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (button.disabled) return;
+      activeUnit = button.getAttribute('data-unit');
+      const room = flow.getRoom(activeUnit);
+      flow.persistParams({ ...flow.getParams(), unit: activeUnit, total: room.price * quantity });
+      await loadInventory();
+      renderPage();
+    });
+  });
+}
+
+function syncTotal() {
+  const latest = flow.getParams();
+  const room = flow.getRoom(activeUnit);
+  const total = flow.calculateStayTotal(room.price, latest.checkin, latest.checkout, quantity);
+  document.getElementById('qty-value').textContent = t().guestCount(quantity);
+  document.getElementById('total-label').textContent = flow.formatMoney(total);
+  flow.persistParams({ ...flow.getParams(), unit: activeUnit, quantity, total });
+  document.getElementById('add-cart-btn').disabled =
+    !inventoryReady || isUnitUnavailable(activeUnit) || isPastCheckinDate() || !isValidDateRange();
+}
+
+function renderInventorySummary() {
+  const summary = document.getElementById('inventory-summary');
+  if (!isValidDateRange()) {
+    summary.textContent = t().invalidDateRange;
+    return;
+  }
+  if (isPastCheckinDate()) {
+    summary.textContent = t().pastCheckin;
+    return;
+  }
+  const current = getInventoryMeta(activeUnit);
+  if (!current) {
+    summary.textContent = t().inventoryFailed;
+    return;
+  }
+  if (current.sold_out) {
+    summary.textContent = t().roomSoldOut(activeUnit);
+    return;
+  }
+  if (isOverCapacity(activeUnit)) {
+    summary.textContent = t().roomOverCapacity(activeUnit, maxGuestsForUnit(activeUnit));
+    return;
+  }
+  summary.textContent = t().roomAvailableSummary(activeUnit, current.available, maxGuestsForUnit(activeUnit));
+}
+
+async function loadInventory() {
+  inventoryReady = false;
+  try {
+    const cfg = await window.SentinelGuestConfig.load();
+    const base = String(cfg.apiBaseUrl || 'https://cam.ainadevelop.com').replace(/\/+$/, '');
+    const latest = flow.getParams();
+    const query = new URLSearchParams({
+      checkin: latest.checkin || '',
+      checkout: latest.checkout || ''
+    });
+    const res = await fetch(`${base}/api/inventory?${query.toString()}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`inventory_http_${res.status}`);
+    const data = await res.json();
+    const units = Array.isArray(data?.units) ? data.units : [];
+    inventoryByUnit = units.reduce((acc, unit) => {
+      if (unit && unit.unit) {
+        acc[String(unit.unit)] = unit;
+      }
+      return acc;
+    }, {});
+    if (isUnitUnavailable(activeUnit)) {
+      const firstAvailable = Object.values(inventoryByUnit).find((unit) => !unit.sold_out && quantity <= maxGuestsForUnit(unit.unit));
+      if (firstAvailable && firstAvailable.unit) activeUnit = String(firstAvailable.unit);
+    }
+    inventoryReady = true;
+  } catch (_error) {
+    inventoryByUnit = {};
+    inventoryReady = true;
+  }
+}
+
+function renderPage() {
+  renderHero();
+  renderPlans();
+  syncTotal();
+  renderInventorySummary();
+  renderAmenities();
+  flow.hydrateChrome({ title: 'お部屋詳細 - HAVEN' });
+}
+
+function bindStayTimes() {
+  const checkinInput = document.getElementById('checkin-time-input');
+  const checkoutInput = document.getElementById('checkout-time-input');
+  const persistTimes = () => {
+    const checkinTime = String(checkinInput.value || '15:00').trim() || '15:00';
+    const checkoutTime = String(checkoutInput.value || '10:00').trim() || '10:00';
+    flow.persistParams({ ...flow.getParams(), checkin_time: checkinTime, checkout_time: checkoutTime });
+  };
+  checkinInput.addEventListener('change', persistTimes);
+  checkoutInput.addEventListener('change', persistTimes);
+}
+
+function bindStayDates() {
+  const checkinInput = document.getElementById('checkin-date-input');
+  const checkoutInput = document.getElementById('checkout-date-input');
+  const today = todayYmd();
+  checkinInput.min = today;
+  checkoutInput.min = addDays(today, 1);
+
+  const persistDates = async () => {
+    const checkin = String(checkinInput.value || '').trim();
+    const checkout = String(checkoutInput.value || '').trim();
+    flow.persistParams({ ...flow.getParams(), checkin, checkout });
+    checkoutInput.min = checkin ? addDays(checkin, 1) : addDays(todayYmd(), 1);
+    await loadInventory();
+    renderPage();
+  };
+
+  checkinInput.addEventListener('change', persistDates);
+  checkoutInput.addEventListener('change', persistDates);
+}
+
+function ensureInitialStayDates() {
+  const latest = flow.getParams();
+  const today = todayYmd();
+  const checkinFromParams = String(latest.checkin || '').trim();
+  const defaultCheckin = !checkinFromParams || checkinFromParams < today ? today : checkinFromParams;
+  let defaultCheckout = latest.checkout || addDays(defaultCheckin, 1);
+  if (!defaultCheckout || defaultCheckout <= defaultCheckin) {
+    defaultCheckout = addDays(defaultCheckin, 1);
+  }
+  flow.persistParams({
+    ...latest,
+    checkin: defaultCheckin,
+    checkout: defaultCheckout
+  });
+}
+
+document.getElementById('qty-down').addEventListener('click', () => {
+  quantity = Math.max(1, quantity - 1);
+  loadInventory().then(renderPage);
+});
+document.getElementById('qty-up').addEventListener('click', () => {
+  quantity += 1;
+  loadInventory().then(renderPage);
+});
+document.getElementById('add-cart-btn').addEventListener('click', () => {
+  if (!inventoryReady) return;
+  document.getElementById('consent-modal').classList.add('is-open');
+});
+document.getElementById('close-consent').addEventListener('click', () => {
+  document.getElementById('consent-modal').classList.remove('is-open');
+});
+document.getElementById('consent-check').addEventListener('change', (event) => {
+  document.getElementById('confirm-add-btn').disabled = !event.target.checked;
+});
+document.getElementById('confirm-add-btn').addEventListener('click', () => {
+  const item = flow.buildCartItem(flow.getParams(), quantity);
+  flow.addToCart(item);
+  window.location.href = flow.buildUrl('./cart.html');
+});
+
+document.getElementById('footer-slot').innerHTML = flow.renderFooter();
+
+const slides = [...document.querySelectorAll('.hero-slide')];
+const dots = document.getElementById('hero-dots');
+let slideIndex = 0;
+dots.innerHTML = slides.map((_, index) => `<button type="button" class="${index === 0 ? 'is-active' : ''}" data-dot="${index}"></button>`).join('');
+dots.querySelectorAll('[data-dot]').forEach((dot) => {
+  dot.addEventListener('click', () => setSlide(Number(dot.getAttribute('data-dot'))));
+});
+function setSlide(index) {
+  slideIndex = index;
+  slides.forEach((slide, idx) => slide.classList.toggle('is-active', idx === index));
+  dots.querySelectorAll('button').forEach((dot, idx) => dot.classList.toggle('is-active', idx === index));
+}
+setInterval(() => setSlide((slideIndex + 1) % slides.length), 4200);
+
+bindStayTimes();
+ensureInitialStayDates();
+bindStayDates();
+loadInventory().then(renderPage);
+window.addEventListener('sentinel:langchange', renderPage);
+</script>
 </body>
 </html>

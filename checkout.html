@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>申込情報入力 - HAVEN</title>
+<script src="./flow.js"></script>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="topbar-row">
+        <a class="brand" href="./index.html"><span class="brand-mark">H</span><span>HAVEN</span></a>
+        <div class="topbar-actions">
+          <a class="icon-btn" href="./cart.html">🛒<span class="badge hidden" data-cart-count>0</span></a>
+          <a class="icon-btn" href="./menu.html">☰</a>
+        </div>
+      </div>
+      <div class="guest-strip" data-guest-strip></div>
+    </header>
+
+    <main>
+      <div id="progress-slot"></div>
+      <section class="card">
+        <div class="section-chip">申込情報</div>
+        <div class="warn-text hidden" id="checkout-error" style="margin-bottom:10px;"></div>
+        <form class="grid" id="checkout-form">
+          <div class="inline-fields">
+            <div class="field"><label id="label-last-name">姓<span class="required-badge">必須</span></label><input class="input" name="lastName" required></div>
+            <div class="field"><label id="label-first-name">名<span class="required-badge">必須</span></label><input class="input" name="firstName" required></div>
+          </div>
+          <div class="inline-fields" id="kana-row">
+            <div class="field"><label id="label-kana-last">セイ<span class="required-badge">必須</span></label><input class="input" name="lastKana" required></div>
+            <div class="field"><label id="label-kana-first">メイ<span class="required-badge">必須</span></label><input class="input" name="firstKana" required></div>
+          </div>
+          <div class="field">
+            <label id="label-country">国家<span class="required-badge">必須</span></label>
+            <div class="pill-tabs">
+              <button type="button" class="is-active" data-country="JP" id="country-jp-btn">日本</button>
+              <button type="button" data-country="OTHER" id="country-other-btn">海外</button>
+            </div>
+            <input type="hidden" name="country" value="JP">
+          </div>
+          <div class="field hidden" id="country-name-row">
+            <label id="label-country-name">国名<span class="required-badge">必須</span></label>
+            <input class="input" name="countryName" id="country-name-input" placeholder="United States / Thailand">
+          </div>
+          <div class="inline-fields three">
+            <div class="field"><label id="label-birth-year">生年<span class="required-badge">必須</span></label><input class="input" name="birthYear" placeholder="1990" required></div>
+            <div class="field"><label id="label-birth-month">月</label><input class="input" name="birthMonth" placeholder="01" required></div>
+            <div class="field"><label id="label-birth-day">日</label><input class="input" name="birthDay" placeholder="01" required></div>
+          </div>
+          <div class="field" id="jp-zip-row">
+            <label id="label-zip-jp">郵便番号<span class="required-badge">必須</span></label>
+            <div class="inline-fields">
+              <input class="input" name="zip1" maxlength="3" required>
+              <input class="input" name="zip2" maxlength="4" required>
+            </div>
+            <button class="btn-outline" type="button" id="zip-fill-btn">郵便番号から住所を自動入力</button>
+          </div>
+          <div class="field hidden" id="intl-postal-row">
+            <label id="label-intl-postal">Postal Code<span class="required-badge">必須</span></label>
+            <input class="input" name="postalCodeIntl" id="postal-intl-input" placeholder="100-0001 / 90210">
+          </div>
+          <div class="field" id="jp-prefecture-row"><label id="label-prefecture">都道府県<span class="required-badge">必須</span></label><select class="select" name="prefecture" required><option value="">選択してください</option><option>東京都</option><option>神奈川県</option><option>千葉県</option><option>埼玉県</option><option>大阪府</option><option>京都府</option></select></div>
+          <div class="field hidden" id="intl-region-row">
+            <label id="label-region">State / Province<span class="required-badge">必須</span></label>
+            <input class="input" name="regionIntl" id="region-intl-input" placeholder="California / Bangkok">
+          </div>
+          <div class="field"><label id="label-city">市区町村<span class="required-badge">必須</span></label><input class="input" name="city" required></div>
+          <div class="field"><label id="label-address1">それ以降の住所<span class="required-badge">必須</span></label><input class="input" name="address1" required></div>
+          <div class="inline-fields three">
+            <div class="field"><label id="label-phone">電話番号<span class="required-badge">必須</span></label><input class="input" name="phone1" maxlength="3" required></div>
+            <div class="field"><label>&nbsp;</label><input class="input" name="phone2" maxlength="4" required></div>
+            <div class="field"><label>&nbsp;</label><input class="input" name="phone3" maxlength="4" required></div>
+          </div>
+          <div class="field"><label id="label-email">メールアドレス<span class="required-badge">必須</span></label><input class="input" type="email" name="email" required></div>
+        </form>
+        <div class="actions-row" style="margin-top:14px;">
+          <button class="btn-outline" type="button" id="change-member-btn">会員情報を変更する</button>
+          <button class="btn" type="button" id="to-payment-btn">支払い情報入力に進む</button>
+        </div>
+      </section>
+    </main>
+    <div id="footer-slot"></div>
+  </div>
+<script>
+const flow = window.SentinelGuestFlow;
+const params = flow.getParams();
+const applicant = flow.getApplicant();
+document.getElementById('progress-slot').innerHTML = flow.renderProgress(1);
+document.getElementById('footer-slot').innerHTML = flow.renderFooter();
+flow.hydrateChrome({ progressStep: 1, title: '申込情報入力 - HAVEN' });
+
+const form = document.getElementById('checkout-form');
+const errorBox = document.getElementById('checkout-error');
+const jpZipRow = document.getElementById('jp-zip-row');
+const jpPrefectureRow = document.getElementById('jp-prefecture-row');
+const intlPostalRow = document.getElementById('intl-postal-row');
+const intlRegionRow = document.getElementById('intl-region-row');
+const countryNameRow = document.getElementById('country-name-row');
+const kanaRow = document.getElementById('kana-row');
+const zipFillBtn = document.getElementById('zip-fill-btn');
+const savedPhone = String(params.phone || applicant.phone || '');
+
+const defaults = {
+  email: params.email || applicant.email || '',
+  phone1: savedPhone.slice(0, 3),
+  phone2: savedPhone.slice(3, 7),
+  phone3: savedPhone.slice(7, 11)
+};
+
+Object.entries({ ...applicant, ...defaults }).forEach(([key, value]) => {
+  const input = form.elements.namedItem(key);
+  if (input) input.value = value;
+});
+
+const i18n = {
+  ja: {
+    title: '申込情報入力 - HAVEN',
+    section: '申込情報',
+    lastName: '姓',
+    firstName: '名',
+    country: '国家',
+    countryJP: '日本',
+    countryOther: '海外',
+    countryName: '国名',
+    prefecture: '都道府県',
+    region: '州 / 県 / Province',
+    postalIntl: '海外郵便番号',
+    changeMember: '会員情報を変更する',
+    proceed: '支払い情報入力に進む',
+    kanaLast: 'セイ',
+    kanaFirst: 'メイ',
+    zipJp: '郵便番号',
+    birthYear: '生年',
+    birthMonth: '月',
+    birthDay: '日',
+    city: '市区町村',
+    address1: 'それ以降の住所',
+    phone: '電話番号',
+    email: 'メールアドレス',
+    zipFill: '郵便番号から住所を自動入力',
+    prefecturePrompt: '選択してください',
+    required: '必須',
+    countryPlaceholder: 'United States / Thailand',
+    postalPlaceholder: '100-0001 / 90210',
+    regionPlaceholder: 'California / Bangkok',
+    birthYearPlaceholder: '1990',
+    birthMonthPlaceholder: '01',
+    birthDayPlaceholder: '01',
+    invalidJPName: '日本を選択時は姓・名を漢字/ひらがな/カタカナで入力してください。',
+    invalidKana: '日本を選択時はセイ・メイを全角カタカナで入力してください。',
+    invalidForeignName: '海外を選択時は姓・名を英字のみで入力してください。',
+    invalidZip: '日本の郵便番号は3桁-4桁の数字で入力してください。',
+    invalidPhone: '電話番号は数字10〜11桁で入力してください。',
+    invalidBirth: '生年月日を正しく入力してください。',
+    invalidAddress: '住所にテスト用の仮入力が含まれています。実在住所を入力してください。',
+    invalidForeignAddress: '海外住所は英数字（半角）で入力してください。'
+  },
+  en: {
+    title: 'Applicant Information - HAVEN',
+    section: 'Applicant Information',
+    lastName: 'Last name',
+    firstName: 'First name',
+    country: 'Country',
+    countryJP: 'Japan',
+    countryOther: 'Overseas',
+    countryName: 'Country name',
+    prefecture: 'Prefecture',
+    region: 'State / Province',
+    postalIntl: 'Postal Code',
+    changeMember: 'Back to room selection',
+    proceed: 'Continue to payment',
+    kanaLast: 'Last (kana)',
+    kanaFirst: 'First (kana)',
+    zipJp: 'Postal code',
+    birthYear: 'Year of birth',
+    birthMonth: 'Month',
+    birthDay: 'Day',
+    city: 'City / Ward',
+    address1: 'Street / building',
+    phone: 'Phone',
+    email: 'Email',
+    zipFill: 'Fill address from postal code',
+    prefecturePrompt: 'Select…',
+    required: 'Required',
+    countryPlaceholder: 'United States / Thailand',
+    postalPlaceholder: '100-0001 / 90210',
+    regionPlaceholder: 'California / Bangkok',
+    birthYearPlaceholder: '1990',
+    birthMonthPlaceholder: '01',
+    birthDayPlaceholder: '01',
+    invalidJPName: 'For Japan, please enter names in Kanji/Hiragana/Katakana.',
+    invalidKana: 'For Japan, Kana fields must be full-width Katakana.',
+    invalidForeignName: 'For overseas, please enter names using English letters only.',
+    invalidZip: 'Japanese postal code must be 3 digits + 4 digits.',
+    invalidPhone: 'Phone number must be 10-11 digits.',
+    invalidBirth: 'Please enter a valid birth date.',
+    invalidAddress: 'Address contains placeholder text. Please enter a real address.',
+    invalidForeignAddress: 'For overseas address, use ASCII letters/numbers only.'
+  }
+};
+
+function setLabelLeadingText(id, text) {
+  const el = document.getElementById(id);
+  if (!el || !el.childNodes.length) return;
+  const first = el.childNodes[0];
+  if (first.nodeType === Node.TEXT_NODE) first.textContent = text;
+}
+
+function applyLanguage(lang) {
+  const t = i18n[lang] || i18n.ja;
+  document.title = t.title;
+  flow.hydrateChrome({ progressStep: 1, title: t.title });
+  document.querySelector('.section-chip').textContent = t.section;
+  setLabelLeadingText('label-last-name', t.lastName);
+  setLabelLeadingText('label-first-name', t.firstName);
+  setLabelLeadingText('label-kana-last', t.kanaLast);
+  setLabelLeadingText('label-kana-first', t.kanaFirst);
+  setLabelLeadingText('label-country', t.country);
+  document.getElementById('country-jp-btn').textContent = t.countryJP;
+  document.getElementById('country-other-btn').textContent = t.countryOther;
+  setLabelLeadingText('label-country-name', t.countryName);
+  setLabelLeadingText('label-prefecture', t.prefecture);
+  setLabelLeadingText('label-region', t.region);
+  setLabelLeadingText('label-intl-postal', t.postalIntl);
+  setLabelLeadingText('label-zip-jp', t.zipJp);
+  setLabelLeadingText('label-birth-year', t.birthYear);
+  setLabelLeadingText('label-birth-month', t.birthMonth);
+  setLabelLeadingText('label-birth-day', t.birthDay);
+  setLabelLeadingText('label-city', t.city);
+  setLabelLeadingText('label-address1', t.address1);
+  setLabelLeadingText('label-phone', t.phone);
+  setLabelLeadingText('label-email', t.email);
+  document.getElementById('zip-fill-btn').textContent = t.zipFill;
+  const pref = form.elements.prefecture;
+  if (pref && pref.options && pref.options[0]) pref.options[0].textContent = t.prefecturePrompt;
+  document.querySelectorAll('.required-badge').forEach((node) => {
+    node.textContent = t.required;
+  });
+  form.elements.countryName.placeholder = t.countryPlaceholder;
+  form.elements.postalCodeIntl.placeholder = t.postalPlaceholder;
+  form.elements.regionIntl.placeholder = t.regionPlaceholder;
+  form.elements.birthYear.placeholder = t.birthYearPlaceholder;
+  form.elements.birthMonth.placeholder = t.birthMonthPlaceholder;
+  form.elements.birthDay.placeholder = t.birthDayPlaceholder;
+  document.getElementById('change-member-btn').textContent = t.changeMember;
+  document.getElementById('to-payment-btn').textContent = t.proceed;
+}
+
+function setError(message) {
+  if (!message) {
+    errorBox.classList.add('hidden');
+    errorBox.textContent = '';
+    return;
+  }
+  errorBox.textContent = message;
+  errorBox.classList.remove('hidden');
+}
+
+function normalizeDigits(value) {
+  return String(value || '').replace(/[０-９]/g, (char) => String(char.charCodeAt(0) - 65248)).replace(/\D/g, '');
+}
+
+function isAsciiAddress(value) {
+  return /^[A-Za-z0-9\s,.\-/#()]+$/.test(String(value || '').trim());
+}
+
+function validateBirth(data, lang) {
+  const year = Number(normalizeDigits(data.birthYear));
+  const month = Number(normalizeDigits(data.birthMonth));
+  const day = Number(normalizeDigits(data.birthDay));
+  if (!year || !month || !day) return i18n[lang].invalidBirth;
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return i18n[lang].invalidBirth;
+  if (year < 1900 || year > new Date().getFullYear()) return i18n[lang].invalidBirth;
+  return '';
+}
+
+function syncCountryFields() {
+  const isJP = form.elements.country.value === 'JP';
+  jpZipRow.classList.toggle('hidden', !isJP);
+  jpPrefectureRow.classList.toggle('hidden', !isJP);
+  kanaRow.classList.toggle('hidden', !isJP);
+  zipFillBtn.classList.toggle('hidden', !isJP);
+  intlPostalRow.classList.toggle('hidden', isJP);
+  intlRegionRow.classList.toggle('hidden', isJP);
+  countryNameRow.classList.toggle('hidden', isJP);
+
+  form.elements.lastKana.required = isJP;
+  form.elements.firstKana.required = isJP;
+  form.elements.zip1.required = isJP;
+  form.elements.zip2.required = isJP;
+  form.elements.prefecture.required = isJP;
+  form.elements.countryName.required = !isJP;
+  form.elements.postalCodeIntl.required = !isJP;
+  form.elements.regionIntl.required = !isJP;
+}
+
+function validateForm(data) {
+  const lang = flow.getUiLang();
+  const isJP = String(data.country || 'JP') === 'JP';
+  const japaneseNamePattern = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー々ヶ\s]+$/u;
+  const katakanaPattern = /^[ァ-ヶー\s]+$/;
+  const latinNamePattern = /^[A-Za-z][A-Za-z\s'-]*$/;
+  const phone = `${normalizeDigits(data.phone1)}${normalizeDigits(data.phone2)}${normalizeDigits(data.phone3)}`;
+  const addressTokens = `${data.city || ''} ${data.address1 || ''}`.toLowerCase();
+  const placeholderWords = ['test', 'dummy', 'sample', 'xxx', '仮', 'テスト'];
+
+  if (isJP) {
+    if (!japaneseNamePattern.test(String(data.lastName || '').trim()) || !japaneseNamePattern.test(String(data.firstName || '').trim())) {
+      return i18n[lang].invalidJPName;
+    }
+    if (!katakanaPattern.test(String(data.lastKana || '').trim()) || !katakanaPattern.test(String(data.firstKana || '').trim())) {
+      return i18n[lang].invalidKana;
+    }
+    if (normalizeDigits(data.zip1).length !== 3 || normalizeDigits(data.zip2).length !== 4) {
+      return i18n[lang].invalidZip;
+    }
+  } else {
+    if (!latinNamePattern.test(String(data.lastName || '').trim()) || !latinNamePattern.test(String(data.firstName || '').trim())) {
+      return i18n[lang].invalidForeignName;
+    }
+    if (!isAsciiAddress(data.city) || !isAsciiAddress(data.address1) || !isAsciiAddress(data.regionIntl) || !isAsciiAddress(data.countryName)) {
+      return i18n[lang].invalidForeignAddress;
+    }
+    data.prefecture = String(data.regionIntl || '').trim();
+  }
+
+  if (!phone || phone.length < 10 || phone.length > 11) return i18n[lang].invalidPhone;
+  if (placeholderWords.some((word) => addressTokens.includes(word))) return i18n[lang].invalidAddress;
+  const birthError = validateBirth(data, lang);
+  if (birthError) return birthError;
+  return '';
+}
+
+document.querySelectorAll('[data-country]').forEach((button) => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('[data-country]').forEach((node) => node.classList.remove('is-active'));
+    button.classList.add('is-active');
+    form.elements.country.value = button.getAttribute('data-country');
+    syncCountryFields();
+    setError('');
+  });
+});
+
+document.getElementById('zip-fill-btn').addEventListener('click', () => {
+  if (!form.elements.prefecture.value) form.elements.prefecture.value = '東京都';
+  if (!form.elements.city.value) form.elements.city.value = '新宿区';
+  if (!form.elements.address1.value) form.elements.address1.value = '西新宿1-1-1';
+});
+
+document.getElementById('change-member-btn').addEventListener('click', () => {
+  window.location.href = flow.buildUrl('./index.html');
+});
+
+applyLanguage(flow.getUiLang());
+const initialCountry = applicant.country === 'OTHER' ? 'OTHER' : 'JP';
+form.elements.country.value = initialCountry;
+document.querySelectorAll('[data-country]').forEach((node) => {
+  node.classList.toggle('is-active', node.getAttribute('data-country') === initialCountry);
+});
+syncCountryFields();
+window.addEventListener('sentinel:langchange', () => {
+  applyLanguage(flow.getUiLang());
+  setError('');
+});
+const topLangSelect = document.getElementById('lang-select');
+if (topLangSelect) {
+  topLangSelect.value = flow.getUiLang();
+  topLangSelect.addEventListener('change', () => {
+    applyLanguage(flow.getUiLang());
+    setError('');
+  });
+}
+
+document.getElementById('to-payment-btn').addEventListener('click', () => {
+  setError('');
+  if (!form.reportValidity()) return;
+  const data = Object.fromEntries(new FormData(form).entries());
+  const validationError = validateForm(data);
+  if (validationError) {
+    setError(validationError);
+    return;
+  }
+  const email = String(data.email || '').trim();
+  const phone = `${normalizeDigits(data.phone1)}${normalizeDigits(data.phone2)}${normalizeDigits(data.phone3)}`;
+  const normalized = {
+    ...data,
+    email,
+    phone,
+    zip1: normalizeDigits(data.zip1),
+    zip2: normalizeDigits(data.zip2),
+    birthYear: normalizeDigits(data.birthYear),
+    birthMonth: normalizeDigits(data.birthMonth),
+    birthDay: normalizeDigits(data.birthDay),
+    postalCodeIntl: String(data.postalCodeIntl || '').trim(),
+    countryName: String(data.countryName || '').trim()
+  };
+  flow.setApplicant(normalized);
+  flow.persistParams({ ...params, email, phone });
+  window.location.href = flow.buildUrl('./payment.html');
+});
+</script>
+</body>
+</html>

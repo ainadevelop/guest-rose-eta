@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="./app-config.js"></script>
+<script>
+(async () => {
+  const cfg = await window.SentinelGuestConfig.load();
+  if (window.location.hostname === 'ainadevelop.github.io') {
+    window.location.replace(cfg.bookingOrigin + window.location.pathname.replace(/^\/detector\/guest/, '') + window.location.search + window.location.hash);
+  }
+})();
+</script>
+<title>施設案内 - HAVEN</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f2f4f7; color: #333; font-family: system-ui, sans-serif; }
+.wrap { padding: 1.5rem 1.25rem 3rem; max-width: 540px; margin: 0 auto; }
+.logo { font-size: 22px; font-weight: 700; color: #111; letter-spacing: 0.06em; }
+.subtitle { font-size: 13px; color: #888; margin: 4px 0 1.5rem; }
+.back { color: #1D9E75; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 1rem; }
+.back:before { content: "← "; }
+
+/* TOC */
+.toc { background: #fff; border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+.toc-title { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+.toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.toc-link { display: flex; align-items: center; gap: 6px; padding: 7px 10px; background: #f7fbf9; border-radius: 10px; text-decoration: none; color: #1D5E45; font-size: 13px; font-weight: 600; border: 1px solid #d6ede5; }
+.toc-link:hover { background: #eef6f2; }
+
+/* cards */
+.card { background: #fff; border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+.card-title { font-size: 16px; font-weight: 700; color: #111; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.card-title .icon { font-size: 18px; }
+
+/* table style info */
+.info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.info-table th { width: 38%; padding: 8px 10px; background: #f2f8f5; color: #3a6651; font-weight: 600; text-align: left; border-bottom: 1px solid #e0ede7; }
+.info-table td { padding: 8px 10px; color: #444; border-bottom: 1px solid #f0f0f0; line-height: 1.6; }
+.info-table tr:last-child th,
+.info-table tr:last-child td { border-bottom: none; }
+
+/* notice list */
+.notice-list { list-style: none; display: grid; gap: 8px; }
+.notice-list li { display: flex; gap: 8px; font-size: 13px; color: #555; line-height: 1.7; }
+.notice-list li:before { content: "•"; color: #1D9E75; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.notice-red li:before { color: #e0583a; }
+
+/* map button */
+.btn { display: flex; justify-content: center; align-items: center; width: 100%; min-height: 46px; border-radius: 12px; text-decoration: none; border: none; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-primary { background: #1D9E75; color: #fff; margin-top: 12px; }
+.btn-secondary { background: #fff; color: #1D9E75; border: 1px solid #cfe8de; margin-top: 8px; }
+.btn-outline { background: #fff; color: #555; border: 1px solid #ddd; margin-top: 8px; }
+
+/* photo gallery */
+.gallery { display: grid; gap: 10px; margin-top: 12px; }
+.photo-block { border-radius: 14px; overflow: hidden; background: #f0f5f2; }
+.photo-block img { width: 100%; display: block; border-radius: 14px; }
+.photo-cap { padding: 8px 12px 10px; font-size: 12px; color: #607060; line-height: 1.5; }
+.photo-placeholder { border-radius: 14px; min-height: 110px; padding: 18px 16px; background: linear-gradient(135deg, #d8efe6, #edf7f3); border: 1px dashed #a7d6c4; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+.ph-title { font-size: 13px; font-weight: 700; color: #1D5E45; }
+.ph-desc { font-size: 12px; color: #4a7362; line-height: 1.5; }
+
+/* chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip { padding: 5px 10px; border-radius: 999px; background: #eef6f2; color: #1D6E50; font-size: 12px; font-weight: 600; }
+.chip-warn { background: #fef3e2; color: #92540a; }
+
+/* section anchor */
+.section-anchor { display: block; height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="menu.html">メニューに戻る</a>
+  <div class="logo">HAVEN</div>
+  <div class="subtitle">施設案内</div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">このページの内容</div>
+    <div class="toc-grid">
+      <a class="toc-link" href="#access">🗺 アクセス</a>
+      <a class="toc-link" href="#hours">🕐 チェックイン</a>
+      <a class="toc-link" href="#photos">📷 外観・内観</a>
+      <a class="toc-link" href="#amenity">🛋 設備・Wi-Fi</a>
+      <a class="toc-link" href="#payment">💳 支払い</a>
+      <a class="toc-link" href="#rules">📋 注意事項</a>
+    </div>
+  </div>
+
+  <!-- ACCESS -->
+  <span id="access" class="section-anchor"></span>
+  <div class="card">
+    <div class="card-title"><span class="icon">🗺</span>アクセス・地図</div>
+    <table class="info-table">
+      <tr><th>住所</th><td>東京都江東区亀戸5-13-9<br>第27東ビル 2階</td></tr>
+      <tr><th>最寄り駅</th><td>JR総武線 亀戸駅 北口 徒歩5分<br>東武亀戸線 亀戸駅 徒歩6分</td></tr>
+      <tr><th>目印</th><td>「第27東ビル」の看板。入口は1階正面。</td></tr>
+    </table>
+    <a class="btn btn-primary" href="https://www.google.com/maps/search/?api=1&query=%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%B1%9F%E6%9D%B1%E5%8C%BA%E4%BA%80%E6%88%B85-13-9%20%E7%AC%AC27%E6%9D%B1%E3%83%93%E3%83%AB2%E9%9A%8E" target="_blank" rel="noopener noreferrer">Googleマップを開く</a>
+    <div class="chips" style="margin-top:12px;">
+      <span class="chip">JR亀戸駅 徒歩5分</span>
+      <span class="chip">東武亀戸駅 徒歩6分</span>
+    </div>
+  </div>
+
+  <!-- CHECK-IN / OUT HOURS -->
+  <span id="hours" class="section-anchor"></span>
+  <div class="card">
+    <div class="card-title"><span class="icon">🕐</span>チェックイン・アウト</div>
+    <table class="info-table">
+      <tr><th>チェックイン</th><td>15:00 〜 22:00</td></tr>
+      <tr><th>チェックアウト</th><td>〜 10:00</td></tr>
+      <tr><th>入室方法</th><td>ご予約一覧のQRコードをスキャナーに提示してください。スタッフ立ち合いは不要です。</td></tr>
+      <tr><th>退室方法</th><td>時間内に荷物をまとめてそのままお退室ください。鍵の返却は不要です。</td></tr>
+    </table>
+    <div class="notice-list" style="margin-top:10px;">
+      <li>チェックインが22:00を過ぎる場合は事前にLINEでご連絡ください。</li>
+      <li>チェックアウト延長（レイトチェックアウト）はご相談ください。</li>
+    </div>
+  </div>
+
+  <!-- PHOTOS -->
+  <span id="photos" class="section-anchor"></span>
+  <div class="card">
+    <div class="card-title"><span class="icon">📷</span>外観・内観</div>
+    <div class="gallery">
+      <div class="photo-placeholder">
+        <div class="ph-title">外観</div>
+        <div class="ph-desc">「第27東ビル」外観。2階が HAVENです。</div>
+      </div>
+      <div class="photo-placeholder">
+        <div class="ph-title">エントランス・廊下</div>
+        <div class="ph-desc">1階入口〜2階廊下の案内。エレベーターはございません。</div>
+      </div>
+      <div class="photo-placeholder">
+        <div class="ph-title">スタンダードルーム（101・102号室）</div>
+        <div class="ph-desc">落ち着いたシンプルデザイン。最大2名。</div>
+      </div>
+      <div class="photo-placeholder">
+        <div class="ph-title">デラックスルーム（201・202号室）</div>
+        <div class="ph-desc">広めのレイアウト。最大4名。冷蔵庫・電子レンジ付き。</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:#aaa;margin-top:10px;">※ 実写真は随時追加予定です。</p>
+  </div>
+
+  <!-- AMENITIES -->
+  <span id="amenity" class="section-anchor"></span>
+  <div class="card">
+    <div class="card-title"><span class="icon">🛋</span>設備・Wi-Fi・アメニティ</div>
+    <table class="info-table">
+      <tr><th>Wi-Fi</th><td>全室あり（ネットワーク名・パスワードは室内掲示を参照）</td></tr>
+      <tr><th>全室共通</th><td>ドライヤー、充電器、Wi-Fi、バスタオル、歯ブラシ</td></tr>
+      <tr><th>デラックスのみ</th><td>冷蔵庫、電子レンジ</td></tr>
+      <tr><th>洗濯機</th><td>共用1台（1F廊下）。使用後は必ず乾燥まで完了させてください。</td></tr>
+      <tr><th>コンビニ</th><td>徒歩2分（セブンイレブン 亀戸5丁目店）</td></tr>
+    </table>
+    <div class="chips" style="margin-top:12px;">
+      <span class="chip">Wi-Fi完備</span>
+      <span class="chip">ドライヤー</span>
+      <span class="chip">バスタオル</span>
+      <span class="chip">歯ブラシ</span>
+      <span class="chip">充電器</span>
+    </div>
+  </div>
+
+  <!-- PAYMENT -->
+  <span id="payment" class="section-anchor"></span>
+  <div class="card">
+    <div class="card-title"><span class="icon">💳</span>料金・支払い方法</div>
+    <table class="info-table">
+      <tr><th>支払いタイミング</th><td>予約時にオンライン決済（事前払い）</td></tr>
+      <tr><th>対応カード</th><td>Visa、Mastercard、American Express、JCB</td></tr>
+      <tr><th>Apple Pay / Google Pay</th><td>対応</td></tr>
+      <tr><th>現金払い</th><td>非対応（カード・電子決済のみ）</td></tr>
+      <tr><th>領収書</th><td>Stripeが発行するレシートをメールにてお送りします。</td></tr>
+    </table>
+  </div>
+
+  <!-- RULES / NOTES -->
+  <span id="rules" class="section-anchor"></span>
+  <div class="card">
+    <div class="card-title"><span class="icon">📋</span>ご利用上の注意事項</div>
+    <ul class="notice-list notice-red" style="margin-bottom:12px;">
+      <li>館内は全室禁煙です（ベランダ・共用部含む）。</li>
+      <li>深夜（22:00以降）は廊下・室内での大声や騒音はご遠慮ください。</li>
+      <li>パーティー・グループでの過度な飲食はご遠慮ください。</li>
+    </ul>
+    <ul class="notice-list">
+      <li>ゴミは室内のゴミ箱にまとめ、チェックアウト時はゴミ袋を縛ってドア前に置いてください。</li>
+      <li>貴重品の管理はご自身でお願いします。紛失・盗難の責任は負いかねます。</li>
+      <li>設備の故障や緊急時はLINEトークで運営へご連絡ください。</li>
+      <li>キャンセルについては予約確認ページまたはLINEにてご相談ください。</li>
+    </ul>
+    <div class="chips" style="margin-top:12px;">
+      <span class="chip-warn chip">禁煙（全館）</span>
+      <span class="chip-warn chip">騒音注意</span>
+      <span class="chip chip">ペット不可</span>
+    </div>
+  </div>
+
+  <!-- CONTACT -->
+  <div class="card">
+    <div class="card-title"><span class="icon">💬</span>お問い合わせ</div>
+    <p style="font-size:13px;color:#666;line-height:1.7;margin-bottom:12px;">
+      ご不明な点は LINEトーク（このトーク画面）に直接お送りください。<br>
+      スタッフが確認次第ご返答します。
+    </p>
+    <a class="btn btn-secondary" href="support.html">お問い合わせ画面へ</a>
+    <a class="btn btn-outline" href="tickets.html" style="margin-top:8px;">ご予約一覧を確認する</a>
+  </div>
+
+</div>
+</body>
+</html>

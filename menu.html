@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="./app-config.js"></script>
+<script>
+(async () => {
+  const cfg = await window.SentinelGuestConfig.load();
+  if (window.location.hostname === 'ainadevelop.github.io') {
+    window.location.replace(cfg.bookingOrigin + window.location.pathname.replace(/^\/detector\/guest/, '') + window.location.search + window.location.hash);
+  }
+})();
+</script>
+<meta name="description" content="HAVEN smart stay operations and entry management">
+<meta property="og:site_name" content="HAVEN">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HAVEN">
+<meta property="og:description" content="HAVEN smart stay operations and entry management">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231D9E75%27/%3E%3Cpath d=%27M18 33l9 9 19-20%27 stroke=%27white%27 stroke-width=%276%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+<title>メニュー - HAVEN</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f5f5f5; color: #333; font-family: system-ui, sans-serif; }
+.wrap { padding: 2rem 1.5rem; max-width: 480px; margin: 0 auto; }
+.logo { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+.subtitle { font-size: 14px; color: #888; margin-bottom: 1.5rem; }
+.card { background: #fff; border-radius: 16px; padding: 1.25rem; margin-bottom: 0.9rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.menu-link { display: block; text-decoration: none; }
+.menu-title { font-size: 16px; font-weight: 600; color: #111; }
+.menu-desc { margin-top: 6px; font-size: 13px; color: #666; line-height: 1.6; }
+.muted { font-size: 12px; color: #888; margin-top: 12px; }
+.btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #1D9E75; color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">HAVEN</div>
+  <div class="subtitle">ゲストメニュー</div>
+
+  <a class="menu-link" href="index.html">
+    <div class="card">
+      <div class="menu-title">新規予約</div>
+      <div class="menu-desc">チェックイン情報を入力して予約と決済に進みます。</div>
+    </div>
+  </a>
+
+  <a class="menu-link" href="confirm.html?v=20260412c">
+    <div class="card">
+      <div class="menu-title">予約確認</div>
+      <div class="menu-desc">予約日時や部屋番号はご予約一覧から確認できます。</div>
+    </div>
+  </a>
+
+  <a class="menu-link" href="line.html?target=%2Findex.html">
+    <div class="card">
+      <div class="menu-title">LINE経由で開く</div>
+      <div class="menu-desc">LINE内ブラウザ向けの安定ページへ遷移します。</div>
+    </div>
+  </a>
+
+  <a class="menu-link" href="line.html?target=%2Fsupport.html">
+    <div class="card">
+      <div class="menu-title">お問い合わせ</div>
+      <div class="menu-desc">LINEトークへ戻るための案内とテンプレートを開きます。</div>
+    </div>
+  </a>
+
+  <div class="card">
+    <div class="menu-title">入室リンクを開く</div>
+    <div class="menu-desc">決済後に表示される URL（entry.html?pi=...）を入力して開けます。</div>
+    <div style="margin-top:10px; display:grid; gap:8px;">
+      <input id="entry-url" placeholder="entry.html?pi=pi_xxx の形式で入力" style="width:100%; border:1px solid #ddd; border-radius:10px; padding:10px; font-size:12px;">
+      <button class="btn" type="button" onclick="openEntry()">開く</button>
+      <div class="muted">URLが分からない場合は完了画面の「リンクをコピー」を使ってください。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let guestConfig = window.SentinelGuestConfig.defaults;
+
+function defaultEntryPlaceholder() {
+  const base = String(guestConfig.bookingOrigin || window.location.origin).replace(/\/+$/, '');
+  return `${base}/entry.html?pi=pi_xxx`;
+}
+
+function openEntry() {
+  const value = (document.getElementById('entry-url').value || '').trim();
+  if (!value) { alert('入室リンクを入力してください。'); return; }
+  let url;
+  try { url = new URL(value); } catch (_) { alert(`URLの形式が正しくありません。\n例: ${defaultEntryPlaceholder()}`); return; }
+  if (!url.pathname.endsWith('entry.html')) { alert('入室リンクは entry.html で終わるURLを入力してください。'); return; }
+  if (!url.searchParams.get('pi')) { alert('URLに pi= パラメータが含まれていません。完了画面の「リンクをコピー」から取得してください。'); return; }
+  window.location.href = value;
+}
+
+window.SentinelGuestConfig.load().then((cfg) => {
+  guestConfig = cfg;
+  document.getElementById('entry-url').placeholder = defaultEntryPlaceholder();
+}).catch(() => {
+  document.getElementById('entry-url').placeholder = defaultEntryPlaceholder();
+});
+</script>
+</body>
+</html>

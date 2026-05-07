@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>入室案内 | 梅田屋</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f5f5;
+      font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      padding: 24px 16px 48px;
+      color: #333;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .header .logo {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .header .subtitle {
+      font-size: 14px;
+      color: #888;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 24px 20px;
+      max-width: 420px;
+      margin: 0 auto 20px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #4a90e2;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ステップ */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      position: relative;
+    }
+
+    .step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 44px;
+      width: 2px;
+      height: calc(100% - 12px);
+      background: #e0eaf7;
+    }
+
+    .step-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #4a90e2;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-body {
+      padding-bottom: 24px;
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.7;
+    }
+
+    .step-icon {
+      font-size: 28px;
+      margin-bottom: 4px;
+    }
+
+    /* QR使い方 */
+    .qr-how {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .qr-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #f8f9ff;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .qr-step-num {
+      background: #4a90e2;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .qr-step-text {
+      font-size: 13px;
+      color: #444;
+      line-height: 1.6;
+    }
+
+    .qr-step-text strong {
+      color: #333;
+    }
+
+    /* Wi-Fi */
+    .wifi-box {
+      background: #f0f7ff;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .wifi-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .wifi-label {
+      font-size: 12px;
+      color: #888;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .wifi-value {
+      font-size: 15px;
+      font-weight: bold;
+      color: #333;
+      letter-spacing: 1px;
+    }
+
+    .copy-btn {
+      background: #4a90e2;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .copy-btn:hover { background: #357abd; }
+    .copy-btn.copied { background: #27ae60; }
+
+    .divider {
+      height: 1px;
+      background: #dde8f5;
+    }
+
+    .notice-box {
+      background: #fff8e1;
+      border-left: 4px solid #f9a825;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #666;
+      line-height: 1.7;
+    }
+
+    .btn-qr {
+      display: block;
+      text-align: center;
+      background: #4a90e2;
+      color: #fff;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: bold;
+      padding: 14px;
+      border-radius: 10px;
+      margin: 0 auto;
+      max-width: 420px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">🏠 梅田屋</div>
+    <div class="subtitle">入室案内</div>
+  </div>
+
+  <!-- チェックイン手順 -->
+  <div class="card">
+    <div class="card-title">📋 チェックイン手順</div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-icon">🏪</div>
+          <div class="step-title">梅田屋に到着</div>
+          <div class="step-desc">お店の建物にお越しください。</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-icon">🪜</div>
+          <div class="step-title">階段で2階へ</div>
+          <div class="step-desc">入口の階段を上り、2階にお進みください。</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-icon">📱</div>
+          <div class="step-title">ドア右側のリーダーにQRをかざす</div>
+          <div class="step-desc">ドア右側に設置されたQRリーダーに、入室用QRコードをかざしてください。認証が完了するとドアが開きます。</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- QRコードの使い方 -->
+  <div class="card">
+    <div class="card-title">📷 QRコードの使い方</div>
+    <div class="qr-how">
+      <div class="qr-step">
+        <div class="qr-step-num">1</div>
+        <div class="qr-step-text">下のボタンから「QRコード発行」ページを開く</div>
+      </div>
+      <div class="qr-step">
+        <div class="qr-step-num">2</div>
+        <div class="qr-step-text"><strong>予約番号</strong>を入力して「QRコードを表示」をタップ</div>
+      </div>
+      <div class="qr-step">
+        <div class="qr-step-num">3</div>
+        <div class="qr-step-text">表示されたQRコードをドア右側のリーダーにかざす</div>
+      </div>
+      <div class="qr-step">
+        <div class="qr-step-num">4</div>
+        <div class="qr-step-text">🔓 認証完了！ドアが開きます</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wi-Fi -->
+  <div class="card">
+    <div class="card-title">📶 Wi-Fi情報</div>
+    <div class="wifi-box">
+      <div class="wifi-row">
+        <div>
+          <div class="wifi-label">ネットワーク名 (SSID)</div>
+          <div class="wifi-value" id="ssid">umedaya</div>
+        </div>
+        <button class="copy-btn" onclick="copyText('ssid', this)">コピー</button>
+      </div>
+      <div class="divider"></div>
+      <div class="wifi-row">
+        <div>
+          <div class="wifi-label">パスワード</div>
+          <div class="wifi-value" id="pass">umedaya1231</div>
+        </div>
+        <button class="copy-btn" onclick="copyText('pass', this)">コピー</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注意事項 -->
+  <div class="card">
+    <div class="notice-box">
+      ⚠️ QRコードはチェックアウト日まで有効です。<br>
+      お困りの際はLINEでお問い合わせください。
+    </div>
+  </div>
+
+  <!-- QR発行ページへ -->
+  <a class="btn-qr" href="/qr-guide">📱 入室用QRコードを発行する</a>
+
+  <script>
+    function copyText(id, btn) {
+      const text = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'コピー済み';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'コピー';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>

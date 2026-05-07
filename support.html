@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="./app-config.js"></script>
+<script>
+(async () => {
+  const cfg = await window.SentinelGuestConfig.load();
+  if (window.location.hostname === 'ainadevelop.github.io') {
+    window.location.replace(cfg.bookingOrigin + window.location.pathname.replace(/^\/detector\/guest/, '') + window.location.search + window.location.hash);
+  }
+})();
+</script>
+<meta name="description" content="HAVEN smart stay operations and entry management">
+<meta property="og:site_name" content="HAVEN">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HAVEN">
+<meta property="og:description" content="HAVEN smart stay operations and entry management">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231D9E75%27/%3E%3Cpath d=%27M18 33l9 9 19-20%27 stroke=%27white%27 stroke-width=%276%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+<title>お問い合わせ - HAVEN</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f5f5f5; color: #333; font-family: system-ui, sans-serif; }
+.wrap { padding: 2rem 1.5rem; max-width: 520px; margin: 0 auto; }
+.logo { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+.subtitle { font-size: 14px; color: #888; margin-bottom: 1.5rem; }
+.card { background: #fff; border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.title { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 10px; }
+.desc { font-size: 13px; color: #666; line-height: 1.7; }
+.actions { display: grid; gap: 10px; margin-top: 12px; }
+.btn { display: inline-flex; justify-content: center; align-items: center; width: 100%; min-height: 46px; border-radius: 12px; text-decoration: none; border: none; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-primary { background: #1D9E75; color: #fff; }
+.btn-secondary { background: #fff; color: #1D9E75; border: 1px solid #cfe8de; }
+.label { font-size: 12px; color: #888; margin-bottom: 8px; }
+textarea { width: 100%; border: 1px solid #ddd; border-radius: 10px; padding: 10px; font-size: 13px; min-height: 124px; resize: vertical; }
+.note { margin-top: 8px; font-size: 12px; color: #888; line-height: 1.6; }
+.flash { margin-top: 8px; font-size: 12px; color: #1D9E75; min-height: 16px; }
+.back { color: #888; text-decoration: none; font-size: 14px; display: block; margin-bottom: 0.75rem; }
+.bullet-list { display: grid; gap: 8px; margin-top: 10px; color: #666; font-size: 13px; line-height: 1.7; padding-left: 1.1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="menu.html">← メニューに戻る</a>
+  <div class="logo">HAVEN</div>
+  <div class="subtitle">お問い合わせ</div>
+
+  <div class="card">
+    <div class="title">お問い合わせの流れ</div>
+    <p class="desc">このページは予約開始ではなく、LINEトークで質問するための入口です。下のボタンで通常のトークに戻り、そのまま質問を送ってください。</p>
+    <ul class="bullet-list">
+      <li>予約日時やお名前が分かると確認が早くなります。</li>
+      <li>当日の入室や設備トラブルは「緊急」と先頭に入れてください。</li>
+      <li>予約確認が必要な場合は、この下のテンプレートに予約日時を入れて送ってください。</li>
+    </ul>
+    <div class="actions">
+      <a class="btn btn-primary" id="line-chat-link" href="https://line.me" target="_blank" rel="noopener noreferrer">LINEトークに戻る</a>
+      <a class="btn btn-secondary" href="line.html?target=%2Ftickets.html">予約確認ページを開く</a>
+      <a class="btn btn-secondary" href="facility.html">施設案内を見る</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="title">お問い合わせテンプレート</div>
+    <div class="label">必要項目を埋めて、コピーしてLINEへ貼り付けてください</div>
+    <textarea id="template">【お問い合わせ】
+お名前:
+チェックイン日:
+部屋番号:
+お問い合わせ内容:
+</textarea>
+    <div class="actions">
+      <button class="btn btn-primary" type="button" onclick="copyTemplate()">テンプレートをコピー</button>
+    </div>
+    <div class="flash" id="flash"></div>
+    <div class="note">緊急性がある場合は「緊急」と先頭に入れて送信してください。</div>
+  </div>
+</div>
+
+<script>
+let guestConfig = window.SentinelGuestConfig.defaults;
+
+function copyTemplate() {
+  const text = document.getElementById('template').value;
+  const flash = document.getElementById('flash');
+  navigator.clipboard.writeText(text).then(() => {
+    flash.textContent = 'テンプレートをコピーしました。LINEトークに貼り付けて送信してください。';
+  }).catch(() => {
+    flash.textContent = 'コピーできませんでした。手動で選択してコピーしてください。';
+  });
+}
+
+function setLineChatLink() {
+  document.getElementById('line-chat-link').href = guestConfig.lineChatUrl || 'https://line.me';
+}
+
+window.SentinelGuestConfig.load().then((cfg) => {
+  guestConfig = cfg;
+  setLineChatLink();
+}).catch(() => {
+  setLineChatLink();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カート - HAVEN</title>
+<script src="./flow.js"></script>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="topbar-row">
+        <a class="brand" href="./index.html"><span class="brand-mark">H</span><span>HAVEN</span></a>
+        <div class="topbar-actions">
+          <a class="icon-btn" href="./cart.html">🛒<span class="badge hidden" data-cart-count>0</span></a>
+          <a class="icon-btn" href="./menu.html">☰</a>
+        </div>
+      </div>
+      <div class="guest-strip" data-guest-strip></div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="section-chip" id="cart-status-chip">予約内容を追加しました</div>
+        <div class="warn-text" id="cart-status-note">※事前予約は確定していません</div>
+        <div class="summary-box" style="margin-top:12px;">
+          <div class="summary-line"><span>お部屋</span><span id="modal-item-name"></span></div>
+          <div class="summary-line"><span>ご宿泊人数</span><span id="modal-item-qty"></span></div>
+          <div class="summary-line"><span>合計金額</span><strong id="modal-total"></strong></div>
+        </div>
+        <div class="actions-row" style="margin-top:14px;">
+          <a class="btn primary" id="modal-buy-btn" href="./checkout.html">予約へ進む</a>
+          <a class="btn-outline" href="./index.html">お部屋選択へ戻る</a>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="summary-box price">
+          <div class="summary-line"><span>小計</span><span id="subtotal"></span></div>
+          <div class="summary-line"><span>合計</span><strong id="grand-total"></strong></div>
+          <div class="summary-note">ご案内: 現在この予約フローでは追加割引はありません。</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">ご予約内容</div>
+        <div class="warn-text">空室状況により、予約手続き中にご案内内容が変動する場合があります。</div>
+        <div id="cart-list"></div>
+      </section>
+
+      <section class="card">
+        <div class="field">
+          <label for="coupon">割引コード</label>
+          <div class="actions-row">
+            <input class="input" id="coupon" placeholder="割引コードを入力">
+            <button class="btn primary" type="button" id="coupon-btn" style="max-width:110px;">使う</button>
+          </div>
+        </div>
+        <div class="actions-row" style="margin-top:12px;">
+          <a class="btn-outline" href="./index.html">お部屋選択へ戻る</a>
+        </div>
+      </section>
+    </main>
+
+    <div class="sticky-cta">
+      <a class="btn" id="checkout-link" href="./checkout.html">予約へ進む</a>
+    </div>
+    <div id="footer-slot"></div>
+  </div>
+<script>
+const flow = window.SentinelGuestFlow;
+const cart = flow.getCart();
+const item = cart.items[0];
+const completeState = flow.getCompleteState();
+const isEn = flow.getUiLang() === 'en';
+
+function unitLabel(unit) {
+  return isEn ? `Room ${unit}` : `${unit}号室`;
+}
+
+function guestLabel(count) {
+  const n = Number(count || 0);
+  return isEn ? `${n} guest${n === 1 ? '' : 's'}` : `${n}名様`;
+}
+
+function renderEmpty() {
+  const isPaid = Boolean(completeState && completeState.payment_id);
+  document.getElementById('cart-status-chip').textContent = isEn ? 'No reservation in progress' : '編集中の予約はありません';
+  document.getElementById('cart-status-note').textContent = isPaid
+    ? (isEn ? 'Paid reservations can be checked from "My Reservations".' : 'お支払い済みの予約は「ご予約一覧」から確認できます。')
+    : (isEn ? 'Please choose your preferred room from the room details page.' : 'お部屋詳細ページからご希望のお部屋をお選びください。');
+  document.getElementById('modal-item-name').textContent = '-';
+  document.getElementById('modal-item-qty').textContent = '-';
+  document.getElementById('modal-total').textContent = '-';
+  document.getElementById('subtotal').textContent = '-';
+  document.getElementById('grand-total').textContent = '-';
+  document.getElementById('modal-buy-btn').classList.add('hidden');
+  document.getElementById('cart-list').innerHTML = isPaid
+    ? `<div class="help-text">${isEn ? 'Your payment is complete, so there is no reservation currently being edited. Please check My Reservations.' : 'お支払い済みのため、現在編集中の予約はありません。ご予約一覧をご確認ください。'}</div>`
+    : `<div class="help-text">${isEn ? 'Your reservation is empty. Please choose a room from the room details page.' : '予約内容は空です。お部屋詳細ページからご希望のお部屋をお選びください。'}</div>`;
+  document.getElementById('checkout-link').classList.add('hidden');
+}
+
+function renderCart() {
+  if (!item) return renderEmpty();
+  document.getElementById('modal-item-name').textContent = item.name;
+  document.getElementById('modal-item-qty').textContent = guestLabel(item.quantity);
+  document.getElementById('modal-total').textContent = flow.formatMoney(item.total);
+  document.getElementById('subtotal').textContent = flow.formatMoney(item.total);
+  document.getElementById('grand-total').textContent = flow.formatMoney(item.total);
+
+  document.getElementById('cart-list').innerHTML = `
+    <div class="list-card">
+      <div class="thumb"></div>
+      <div>
+        <h3>${item.name}</h3>
+        <div class="meta-tags">
+          <span class="meta-tag">${unitLabel(item.unit)}</span>
+          <span class="meta-tag">${item.area}</span>
+          <span class="meta-tag orange">${flow.formatDateJP(item.checkin)}</span>
+          <span class="meta-tag">${guestLabel(item.quantity)}</span>
+        </div>
+        <div class="summary-line" style="padding-top:12px;">
+          <span>${flow.formatMoney(item.unitPrice)}</span>
+          <strong>${flow.formatMoney(item.total)}</strong>
+        </div>
+        <div class="actions-row" style="margin-top:12px; align-items:center;">
+          <div class="qty-box">
+            <button type="button" id="qty-down">−</button>
+            <span id="qty-label">${item.quantity}</span>
+            <button type="button" id="qty-up">＋</button>
+          </div>
+          <button type="button" class="btn-ghost" id="remove-btn">削除</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('qty-down').addEventListener('click', () => updateQty(item.quantity - 1));
+  document.getElementById('qty-up').addEventListener('click', () => updateQty(item.quantity + 1));
+  document.getElementById('remove-btn').addEventListener('click', () => {
+    flow.removeCartItem();
+    location.reload();
+  });
+}
+
+function updateQty(nextQty) {
+  flow.updateCartQuantity(nextQty);
+  location.reload();
+}
+
+document.getElementById('coupon-btn').addEventListener('click', () => {
+  alert(isEn ? 'Coupon feature is currently unavailable.' : '現在クーポン機能は準備中です。');
+});
+
+document.getElementById('footer-slot').innerHTML = flow.renderFooter();
+flow.hydrateChrome({ title: '予約内容確認 - HAVEN' });
+renderCart();
+</script>
+</body>
+</html>

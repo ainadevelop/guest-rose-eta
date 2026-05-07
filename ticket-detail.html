@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ご予約詳細 - HAVEN</title>
+<script src="./app-config.js"></script>
+<script src="./liff.js"></script>
+<script src="./flow.js"></script>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="topbar-row">
+        <a class="brand" href="./tickets.html"><span class="brand-mark">H</span><span>HAVEN</span></a>
+        <div class="topbar-actions">
+          <a class="icon-btn" href="./tickets.html">🎫</a>
+          <a class="icon-btn" href="./menu.html">☰</a>
+        </div>
+      </div>
+      <div class="guest-strip" data-guest-strip></div>
+    </header>
+    <main>
+      <section class="card">
+        <h1 class="page-title">ご予約詳細</h1>
+      </section>
+      <section class="card center">
+        <div class="section-chip">入室用QRコード</div>
+        <div class="qr-box" id="detail-qr-box">読み込み中...</div>
+        <div class="help-text" style="margin-top:10px;">廃棄禁止</div>
+        <div class="meta-tags" id="ticket-tags" style="justify-content:center; margin-top:12px;"></div>
+      </section>
+      <section class="card">
+        <details class="accordion" open><summary>ご予約詳細</summary><div class="accordion-body">ご予約内容、ご利用条件、注意事項を確認できます。</div></details>
+        <details class="accordion"><summary>注意事項</summary><div class="accordion-body accent-red">共有済みの入室QRは元の予約者から利用できません。</div></details>
+        <details class="accordion"><summary>キャンセルポリシー</summary><div class="accordion-body">キャンセルは別途お問い合わせください。</div></details>
+      </section>
+      <section class="card">
+        <div class="section-chip">ご同行者への共有</div>
+        <div class="actions-row">
+          <button class="btn-outline" id="assign-email-btn" type="button">✉ メールで共有する</button>
+          <button class="btn-outline" id="assign-line-btn" type="button">LINEで共有する</button>
+        </div>
+        <button class="btn-outline" id="assign-url-btn" type="button" style="margin-top:10px;">🔗 URLを共有する</button>
+        <div class="help-text" id="assign-status" style="margin-top:10px;"></div>
+      </section>
+      <a class="btn-ghost" href="./tickets.html">戻る</a>
+    </main>
+    <div class="modal" id="assign-modal">
+      <div class="modal-card">
+        <div class="section-chip">共有先入力</div>
+        <div class="field"><label>メールアドレス</label><input class="input" id="assign-email-input" placeholder="guest@example.com"></div>
+        <div class="actions-row" style="margin-top:12px;">
+          <button class="btn-ghost" type="button" id="assign-modal-close">閉じる</button>
+          <button class="btn primary" type="button" id="assign-modal-submit">共有メールを送信</button>
+        </div>
+      </div>
+    </div>
+    <div id="footer-slot"></div>
+  </div>
+<script>
+const flow = window.SentinelGuestFlow;
+const bookingId = new URLSearchParams(window.location.search).get('booking_id') || flow.getCompleteState().booking_id || '';
+let ticket = null;
+let distributeUrl = '';
+const isEn = flow.getUiLang() === 'en';
+document.getElementById('footer-slot').innerHTML = flow.renderFooter();
+flow.hydrateChrome({ title: 'ご予約詳細 - HAVEN' });
+
+async function loadTicket() {
+  try {
+    const res = await fetch(`https://cam.ainadevelop.com/api/guest/tickets/${encodeURIComponent(bookingId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || data.error || 'ticket_not_found');
+    ticket = data.ticket;
+  } catch (_error) {
+    ticket = flow.getTicketFallbackList()[0] || null;
+  }
+  renderTicket();
+}
+
+function renderTicket() {
+  if (!ticket) {
+    document.getElementById('detail-qr-box').innerHTML = `<div class="warn-text">${isEn ? 'Unable to display reservation details.' : 'ご予約情報を表示できません。'}</div>`;
+    return;
+  }
+  const detailUrl = `${window.location.origin}/ticket-detail.html?booking_id=${encodeURIComponent(ticket.booking_id)}`;
+  const qrUsable = !ticket.distributed && ticket.is_available_now !== false;
+  const qrUrl = qrUsable ? flow.guestApiUrl(`/api/qr?data=${encodeURIComponent(detailUrl)}`) : '';
+  if (ticket.distributed) {
+    document.getElementById('detail-qr-box').innerHTML = `<div class="notice-box">${isEn ? 'Shared' : '共有済み'}</div>`;
+  } else if (!qrUsable) {
+    document.getElementById('detail-qr-box').innerHTML = `<div class="warn-text">${isEn ? 'This QR code is currently unavailable.' : 'このQRコードは現在利用できません。'}${ticket.unavailable_reason || ''}</div>`;
+  } else {
+    document.getElementById('detail-qr-box').innerHTML = `<img src="${qrUrl}" alt="${isEn ? 'ticket QR' : 'ticket qr'}">`;
+  }
+  document.getElementById('ticket-tags').innerHTML = `
+    <span class="meta-tag">${isEn ? `Room ${ticket.unit}` : `${ticket.unit}号室`}</span>
+    <span class="meta-tag">${flow.formatDateJP(ticket.checkin)}</span>
+    <span class="meta-tag">${isEn ? 'Purchased' : '購入日時'} ${String(ticket.purchased_at || '').slice(0, 16).replace('T', ' ')}</span>
+    <span class="meta-tag orange">${isEn ? 'Usage window' : '利用時間'} ${ticket.valid_from || ticket.checkin} ～ ${ticket.valid_until || ticket.checkout}</span>
+    <span class="meta-tag gray">${isEn ? 'Order ID' : '注文番号'} ${ticket.booking_id}</span>
+    ${ticket.unavailable_reason ? `<span class="meta-tag red">${isEn ? 'Unavailable' : '利用不可'}: ${ticket.unavailable_reason}</span>` : ''}
+    ${ticket.distributed ? `<span class="meta-tag red">${isEn ? 'Shared' : '共有済み'}</span>` : ''}
+  `;
+}
+
+async function requestDistribute(method, destination) {
+  const res = await fetch(`https://cam.ainadevelop.com/api/guest/tickets/${encodeURIComponent(bookingId)}/distribute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ method, destination })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || data.error || 'distribute_failed');
+  distributeUrl = data.distribute_url || '';
+  return data;
+}
+
+document.getElementById('assign-email-btn').addEventListener('click', () => {
+  document.getElementById('assign-modal').classList.add('is-open');
+});
+document.getElementById('assign-modal-close').addEventListener('click', () => {
+  document.getElementById('assign-modal').classList.remove('is-open');
+});
+document.getElementById('assign-modal-submit').addEventListener('click', async () => {
+  const email = document.getElementById('assign-email-input').value.trim();
+  if (!email) return;
+  try {
+    const data = await requestDistribute('email', email);
+    document.getElementById('assign-status').textContent = data.message || (isEn ? 'Share completed.' : '共有が完了しました。');
+    document.getElementById('assign-modal').classList.remove('is-open');
+    loadTicket();
+  } catch (error) {
+    document.getElementById('assign-status').textContent = error.message;
+  }
+});
+document.getElementById('assign-line-btn').addEventListener('click', async () => {
+  try {
+    const data = await requestDistribute('line', 'LINE');
+    const shareUrl = data.distribute_url || '';
+
+    let usedShareTargetPicker = false;
+    try {
+      const cfg = await window.SentinelGuestConfig.load();
+      const liffState = await window.SentinelGuestLiff.init(cfg);
+      if (liffState.initialized && window.SentinelGuestLiff.canUseShareTargetPicker()) {
+        await window.liff.shareTargetPicker([
+          {
+            type: 'flex',
+            altText: 'HAVEN 宿泊予約QRのご案内',
+            contents: {
+              type: 'bubble',
+              body: {
+                type: 'box',
+                layout: 'vertical',
+                contents: [
+                  { type: 'text', text: 'HAVEN', size: 'xs', color: '#1D9E75', weight: 'bold' },
+                  { type: 'text', text: '宿泊予約QRをお送りします', weight: 'bold', size: 'lg', margin: 'sm' },
+                  { type: 'text', text: '下のボタンから入室QRコードと予約内容をご確認ください。', size: 'sm', color: '#666666', wrap: true, margin: 'md' }
+                ]
+              },
+              footer: {
+                type: 'box',
+                layout: 'vertical',
+                contents: [
+                  {
+                    type: 'button',
+                    style: 'primary',
+                    color: '#1D9E75',
+                    action: { type: 'uri', label: 'QRを確認する', uri: shareUrl }
+                  }
+                ]
+              }
+            }
+          }
+        ]);
+        usedShareTargetPicker = true;
+      }
+    } catch (_liffError) {
+      // LIFF未対応環境はフォールバックへ
+    }
+
+    if (!usedShareTargetPicker && shareUrl) {
+      // フォールバック: LINE シェアピッカー URL（友達・グループ選択画面を開く）
+      const lineText = `HAVEN 宿泊予約QR\n入室QRコードはこちら:\n${shareUrl}`;
+      // NOTE:
+      // `window.open` は async 処理後だとポップアップブロックされやすいため、
+      // 同一タブ遷移で確実に共有画面へ移動する。
+      window.location.href = `https://line.me/R/share?text=${encodeURIComponent(lineText)}`;
+    }
+
+    document.getElementById('assign-status').textContent = isEn ? 'LINE share has started.' : 'LINE共有を起動しました。';
+    loadTicket();
+  } catch (error) {
+    document.getElementById('assign-status').textContent = error.message;
+  }
+});
+document.getElementById('assign-url-btn').addEventListener('click', async () => {
+  try {
+    const data = distributeUrl ? { distribute_url: distributeUrl } : await requestDistribute('url', 'URL');
+    await navigator.clipboard.writeText(data.distribute_url);
+    document.getElementById('assign-status').textContent = isEn ? 'Link copied to clipboard.' : 'リンクをクリップボードにコピーしました。';
+    loadTicket();
+  } catch (error) {
+    document.getElementById('assign-status').textContent = error.message;
+  }
+});
+loadTicket();
+</script>
+</body>
+</html>

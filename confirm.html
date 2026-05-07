@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="./app-config.js"></script>
+<script src="./liff.js"></script>
+<script>
+(async () => {
+  const cfg = await window.SentinelGuestConfig.load();
+  if (window.location.hostname === 'ainadevelop.github.io') {
+    window.location.replace(cfg.bookingOrigin + window.location.pathname.replace(/^\/detector\/guest/, '') + window.location.search + window.location.hash);
+  }
+})();
+</script>
+<meta name="description" content="HAVEN smart stay operations and entry management">
+<meta property="og:site_name" content="HAVEN">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HAVEN">
+<meta property="og:description" content="HAVEN smart stay operations and entry management">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231D9E75%27/%3E%3Cpath d=%27M18 33l9 9 19-20%27 stroke=%27white%27 stroke-width=%276%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+<title>予約確認 - HAVEN</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f5f5f5; color: #333; font-family: system-ui, sans-serif; }
+.wrap { padding: 2rem 1.5rem; max-width: 480px; margin: 0 auto; }
+.logo { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+.subtitle { font-size: 14px; color: #888; margin-bottom: 1.5rem; }
+.card { background: #fff; border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+.row:last-child { border-bottom: none; }
+.label { color: #666; }
+.value { color: #111; font-weight: 500; text-align: right; word-break: break-word; }
+.actions { display: grid; gap: 10px; }
+.btn { width: 100%; padding: 13px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; display: inline-block; }
+.btn-primary { background: #1D9E75; color: #fff; }
+.btn-secondary { background: #fff; color: #1D9E75; border: 1px solid #cfe8de; }
+.notice { font-size: 12px; color: #888; margin-top: 10px; }
+.payment-browser-note { font-size: 12px; color: #4b5563; background: #f8fafc; border: 1px solid #dbe4ee; border-radius: 10px; padding: 12px; display: none; line-height: 1.7; }
+.payment-copy-btn { margin-top: 8px; width: 100%; border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 10px; padding: 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(12px); background: rgba(15, 23, 42, 0.92); color: #fff; padding: 10px 14px; border-radius: 999px; font-size: 12px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; z-index: 20; }
+.toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.status-paid { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: #eef8f3; color: #1d6a4f; font-size: 13px; font-weight: 600; text-align: center; }
+.payment-error-box { margin-bottom: 1rem; padding: 12px 14px; border-radius: 12px; background: #fff1f0; border: 1px solid #ffd6d3; display: none; }
+.payment-error-title { font-size: 13px; color: #9f1d1d; font-weight: 700; margin-bottom: 6px; }
+.payment-error-message { font-size: 12px; color: #7f1d1d; line-height: 1.6; margin-bottom: 8px; }
+.payment-error-report { font-size: 12px; color: #6b7280; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px; white-space: pre-wrap; word-break: break-all; }
+.payment-error-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.payment-error-btn { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #d1d5db; background: #fff; font-size: 12px; color: #374151; cursor: pointer; text-decoration: none; text-align: center; }
+.payment-error-btn.primary { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+.qr-box { background: #fff; border-radius: 16px; padding: 1.5rem 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: none; text-align: center; }
+#qrcode { display: flex; align-items: center; justify-content: center; width: 200px; height: 200px; margin: 12px auto 0; }
+#qrcode img { width: 200px; height: 200px; border-radius: 8px; border: 1px solid #e8e8e8; }
+.qr-hint { font-size: 12px; color: #888; margin-top: 12px; line-height: 1.6; }
+.qr-error { margin-top: 12px; font-size: 12px; color: #E24B4A; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">HAVEN</div>
+  <div class="subtitle">予約確認</div>
+
+  <div class="card" id="empty" style="display:none;">
+    <div style="font-size:14px; color:#666; line-height:1.7;">確認する予約情報が見つかりません。先に予約情報を入力してください。</div>
+    <div class="actions" style="margin-top:12px;">
+      <a class="btn btn-primary" href="index.html">予約入力へ</a>
+      <a class="btn btn-secondary" href="menu.html">メニューへ</a>
+    </div>
+  </div>
+
+  <div class="payment-error-box" id="payment-error-box">
+    <div class="payment-error-title">お支払いを完了できませんでした</div>
+    <div class="payment-error-message" id="payment-error-message"></div>
+    <div class="payment-error-report" id="payment-error-report"></div>
+    <div class="payment-error-actions">
+      <a class="payment-error-btn primary" id="retry-payment-link" href="#">再度支払いを試す</a>
+      <a class="payment-error-btn" id="support-link" href="support.html">サポートへ連絡</a>
+    </div>
+    <div class="payment-error-actions">
+      <button class="payment-error-btn" type="button" id="copy-error-report">報告内容をコピー</button>
+      <a class="payment-error-btn" id="open-confirm-link" href="confirm.html">確認画面を再読み込み</a>
+    </div>
+  </div>
+
+  <div class="card" id="summary" style="display:none;">
+    <div class="row"><span class="label">お名前</span><span class="value" id="v-guest"></span></div>
+    <div class="row"><span class="label">国</span><span class="value" id="v-country"></span></div>
+    <div class="row"><span class="label">電話番号</span><span class="value" id="v-phone"></span></div>
+    <div class="row"><span class="label">チェックイン</span><span class="value" id="v-checkin"></span></div>
+    <div class="row"><span class="label">チェックアウト</span><span class="value" id="v-checkout"></span></div>
+    <div class="row"><span class="label">部屋</span><span class="value" id="v-unit"></span></div>
+    <div class="row"><span class="label">合計</span><span class="value" id="v-total"></span></div>
+    <div class="notice">内容を確認して問題なければ、このままお支払いへ進んでください。</div>
+  </div>
+
+  <div class="actions" id="summary-actions" style="display:none;">
+    <a class="btn btn-secondary" id="edit-link" href="index.html">内容を修正</a>
+    <a class="btn btn-primary" id="pay-link" href="#">お支払いへ進む</a>
+    <div class="payment-browser-note" id="payment-browser-note"></div>
+    <div class="status-paid" id="paid-status" style="display:none;">支払い完了済み</div>
+  </div>
+
+  <div class="qr-box" id="qr-box">
+    <div>入室用QRコード</div>
+    <div id="qrcode"></div>
+    <div class="qr-hint">チェックイン当日にこのQRをスキャナーへかざしてください。</div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PRICES = { '101': 8000, '102': 8000, '201': 12000, '202': 12000 };
+const CONFIRM_VERSION = '20260412c';
+let guestConfig = window.SentinelGuestConfig.defaults;
+let toastTimer = null;
+
+function findReservationParams() {
+  const raw = localStorage.getItem('sentinel_reservation_draft') || '';
+  const merged = raw ? new URLSearchParams(raw) : new URLSearchParams();
+  const search = new URLSearchParams(window.location.search);
+  for (const [key, value] of search.entries()) {
+    merged.set(key, value);
+  }
+  return merged;
+}
+
+function readReservationState() {
+  const params = findReservationParams();
+  const country = (params.get('country') || 'JP').trim().toUpperCase();
+  const guest = (params.get('guest') || '').trim();
+  const phone = (params.get('phone_display') || params.get('phone') || '').trim();
+  const phoneDigits = (params.get('phone_digits') || '').trim();
+  const phoneNormalized = (params.get('phone_normalized') || params.get('phone') || '').trim();
+  const checkin = (params.get('checkin') || '').trim();
+  const checkout = (params.get('checkout') || '').trim();
+  const unit = (params.get('unit') || '').trim();
+  const nights = checkin && checkout ? Math.max(0, (new Date(checkout) - new Date(checkin)) / 86400000) : 0;
+  const computedTotal = unit && nights > 0 ? nights * (PRICES[unit] || 8000) : 0;
+  const total = Number(params.get('total') || computedTotal || 0);
+  const lineUserId = (params.get('line_user_id') || '').trim();
+  const countryLabel = ({ JP: '日本 (+81)', US: 'アメリカ (+1)', MY: 'マレーシア (+60)', TH: 'タイ (+66)' })[country] || country;
+  return { params, country, guest, phone, phoneDigits, phoneNormalized, checkin, checkout, unit, total, lineUserId, countryLabel };
+}
+
+function isPaymentComplete(params) {
+  if ((params.get('payment_status') || '').trim().toLowerCase() === 'succeeded') return true;
+  const flag = localStorage.getItem('sentinel_payment_complete') === '1';
+  const pi = localStorage.getItem('sentinel_payment_complete_pi') || localStorage.getItem('sentinel_session_id') || '';
+  return flag && pi.length > 0;
+}
+
+function logConfirmDebug(params, paymentComplete) {
+  console.log('[confirm] version=', CONFIRM_VERSION);
+  console.log('[confirm] sentinel_payment_complete=', localStorage.getItem('sentinel_payment_complete'));
+  console.log('[confirm] sentinel_qr_data=', localStorage.getItem('sentinel_qr_data'));
+  console.log('[confirm] sentinel_session_id=', localStorage.getItem('sentinel_session_id'));
+  console.log('[confirm] payment_status=', params.get('payment_status'));
+  console.log('[confirm] paymentComplete=', paymentComplete);
+}
+
+function guestApiUrl(path) {
+  const base = window.location.hostname === 'ainadevelop.github.io'
+    ? guestConfig.bookingOrigin
+    : window.location.origin;
+  return base.replace(/\/+$/, '') + path;
+}
+
+function isLineInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  return /Line\//i.test(ua) || /\bLIFF\b/i.test(ua);
+}
+
+async function copyText(text) {
+  if (!text) return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function renderPaymentError(state, query) {
+  const hasPaymentError = (query.get('payment_error') || '').trim() === '1';
+  if (!hasPaymentError) return;
+  const message = (query.get('payment_error_message') || 'カード会社による拒否、3Dセキュア中断、または通信エラーの可能性があります。').trim();
+  const paymentIntent = (query.get('payment_intent') || localStorage.getItem('sentinel_last_pi') || '').trim();
+  const report = [
+    `guest=${state.guest || '-'}`,
+    `unit=${state.unit || '-'}`,
+    `checkin=${state.checkin || '-'}`,
+    `checkout=${state.checkout || '-'}`,
+    `payment_intent=${paymentIntent || '-'}`,
+    `error_message=${message}`,
+    `time=${new Date().toISOString()}`
+  ].join('\n');
+  const reportEl = document.getElementById('payment-error-report');
+  reportEl.textContent = report;
+  document.getElementById('payment-error-message').textContent = message;
+  document.getElementById('payment-error-box').style.display = 'block';
+  document.getElementById('support-link').href = `${guestConfig.bookingOrigin}/support.html`;
+  document.getElementById('copy-error-report').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(report);
+      document.getElementById('copy-error-report').textContent = 'コピーしました';
+      setTimeout(() => {
+        document.getElementById('copy-error-report').textContent = '報告内容をコピー';
+      }, 1400);
+    } catch (_error) {}
+  };
+}
+
+function smoothScrollToPrimaryAction() {
+  const target = document.getElementById('pay-link');
+  if (!target || target.style.display === 'none') return;
+  requestAnimationFrame(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = String(message || '');
+  toast.classList.add('is-visible');
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('is-visible');
+  }, 1800);
+}
+
+function buildEntryUrl(state) {
+  const { params, guest } = state;
+  const explicit = (params.get('entry_url') || '').trim();
+  if (explicit) return explicit;
+
+  const sessionId = (params.get('session_id') || localStorage.getItem('sentinel_session_id') || params.get('pi') || params.get('payment_intent') || localStorage.getItem('sentinel_last_pi') || '').trim();
+  if (!sessionId) return '';
+
+  const entryParams = new URLSearchParams({ pi: sessionId });
+  if (guest) {
+    entryParams.set('guest', guest);
+  }
+  return `${guestConfig.bookingOrigin}/entry.html?` + entryParams.toString();
+}
+
+function renderQr(state, entryUrl) {
+  if (!entryUrl) return;
+
+  const { params } = state;
+  const qrBox = document.getElementById('qr-box');
+  const qr = document.getElementById('qrcode');
+  const storedQrUrl = (params.get('qr_url') || localStorage.getItem('sentinel_qr_data') || '').trim();
+  const qrOwnApi = storedQrUrl || guestApiUrl('/api/qr?data=' + encodeURIComponent(entryUrl) + '&t=' + Date.now());
+  const qrPrimary = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(entryUrl);
+  const qrFallback = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(entryUrl);
+  const img = document.createElement('img');
+  img.alt = 'entry-qr';
+  let triedOwnApi = false;
+  let triedFallback = false;
+  img.src = qrOwnApi;
+  img.onerror = () => {
+    if (!triedOwnApi) {
+      triedOwnApi = true;
+      img.src = qrPrimary;
+      return;
+    }
+    if (!triedFallback) {
+      triedFallback = true;
+      img.src = qrFallback;
+      return;
+    }
+    qr.innerHTML = '<div class="qr-error">QR生成に失敗しました。入室リンクを再取得してください。</div>';
+  };
+  qr.innerHTML = '';
+  qr.appendChild(img);
+  qrBox.style.display = 'block';
+}
+
+function resetPaidState() {
+  document.getElementById('edit-link').style.display = '';
+  document.getElementById('pay-link').style.display = '';
+  document.getElementById('paid-status').style.display = 'none';
+  document.getElementById('qr-box').style.display = 'none';
+  document.getElementById('qrcode').innerHTML = '';
+}
+
+function renderConfirmPage() {
+  const state = readReservationState();
+  const { params, guest, phone, phoneDigits, phoneNormalized, checkin, checkout, unit, total, lineUserId, country, countryLabel } = state;
+  const paymentComplete = isPaymentComplete(params);
+  logConfirmDebug(params, paymentComplete);
+
+  resetPaidState();
+
+  if (!guest || !phone || !checkin || !checkout || !unit || !total) {
+    document.getElementById('summary').style.display = 'none';
+    document.getElementById('summary-actions').style.display = 'none';
+    document.getElementById('empty').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('summary').style.display = 'block';
+  document.getElementById('summary-actions').style.display = 'grid';
+  document.getElementById('v-guest').textContent = guest;
+  document.getElementById('v-country').textContent = countryLabel;
+  document.getElementById('v-phone').textContent = phone;
+  document.getElementById('v-checkin').textContent = checkin;
+  document.getElementById('v-checkout').textContent = checkout;
+  document.getElementById('v-unit').textContent = unit + '号室';
+  document.getElementById('v-total').textContent = '¥' + total.toLocaleString();
+
+  const queryParams = new URLSearchParams({
+    guest,
+    country,
+    phone,
+    phone_display: phone,
+    phone_digits: phoneDigits,
+    phone_normalized: phoneNormalized,
+    checkin,
+    checkout,
+    unit,
+    total: String(total),
+    line_user_id: lineUserId,
+    v: CONFIRM_VERSION
+  });
+  const query = queryParams.toString();
+  const payLink = document.getElementById('pay-link');
+  const editLink = document.getElementById('edit-link');
+  const paymentRelative = 'payment.html?' + query;
+  const paymentAbsolute = `${window.location.origin}${window.location.pathname.replace(/\/[^/]+$/, '')}/payment.html?${query}`;
+  payLink.href = paymentRelative;
+  payLink.textContent = 'お支払いへ進む';
+  const browserNote = document.getElementById('payment-browser-note');
+  browserNote.style.display = 'none';
+  browserNote.innerHTML = '';
+  payLink.onclick = null;
+  if (isLineInAppBrowser()) {
+    browserNote.innerHTML = `LINE内ではGoogle Payなどの自動入力を表示していません。カード情報を直接入力してください。<button class="payment-copy-btn" id="copy-payment-url" type="button">外部ブラウザ用URLをコピー</button>`;
+    browserNote.style.display = 'block';
+    const copyBtn = document.getElementById('copy-payment-url');
+    if (copyBtn) {
+      copyBtn.onclick = async () => {
+        const ok = await copyText(paymentAbsolute);
+        copyBtn.textContent = ok ? 'コピーしました' : 'コピー失敗（長押しでコピー）';
+        if (ok) {
+          showToast('外部ブラウザ用URLをコピーしました');
+        }
+        setTimeout(() => {
+          copyBtn.textContent = '外部ブラウザ用URLをコピー';
+        }, 1600);
+      };
+    }
+  }
+  document.getElementById('retry-payment-link').href = paymentRelative;
+  editLink.href = 'index.html?' + query;
+  localStorage.setItem('sentinel_reservation_draft', query);
+
+  if (paymentComplete) {
+    editLink.style.display = 'none';
+    payLink.style.display = 'none';
+    browserNote.style.display = 'none';
+    document.getElementById('paid-status').style.display = 'block';
+    window.SentinelGuestConfig.load().then((cfg) => {
+      guestConfig = cfg;
+      renderQr(state, buildEntryUrl(state));
+    }).catch(() => {
+      renderQr(state, buildEntryUrl(state));
+    });
+  } else {
+    renderPaymentError(state, params);
+    smoothScrollToPrimaryAction();
+  }
+}
+
+renderConfirmPage();
+window.addEventListener('pageshow', renderConfirmPage);
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ご予約一覧 - HAVEN</title>
+<script src="./flow.js"></script>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="topbar-row">
+        <a class="brand" href="./index.html"><span class="brand-mark">H</span><span>HAVEN</span></a>
+        <div class="topbar-actions">
+          <a class="icon-btn" href="./tickets.html">🎫</a>
+          <a class="icon-btn" href="./menu.html">☰</a>
+        </div>
+      </div>
+      <div class="guest-strip" data-guest-strip></div>
+    </header>
+    <main>
+      <section class="card">
+        <h1 class="page-title">ご予約一覧</h1>
+        <div id="reservation-summary" style="margin-top:12px;"></div>
+        <div class="actions-row">
+          <select class="select" id="year-filter"><option value="">年絞り込み</option></select>
+        </div>
+        <div class="pill-tabs" style="margin-top:12px;">
+          <button type="button" class="is-active" data-status="unused">ご利用前</button>
+          <button type="button" data-status="used">ご利用後</button>
+        </div>
+        <div class="scroll-tabs" style="margin-top:12px;" id="facility-tabs"></div>
+      </section>
+      <section class="grid" id="ticket-list"></section>
+      <div class="actions-row" style="margin-top:14px;">
+        <a class="btn-outline" href="./index.html">宿泊予約トップへ戻る</a>
+        <a class="btn-ghost" href="./menu.html">マイページへ戻る</a>
+      </div>
+    </main>
+    <div id="footer-slot"></div>
+  </div>
+<script>
+const flow = window.SentinelGuestFlow;
+const params = flow.getParams();
+const statusButtons = document.querySelectorAll('[data-status]');
+let tickets = [];
+let activeStatus = 'unused';
+let activeFacility = '';
+const isEn = flow.getUiLang() === 'en';
+document.getElementById('footer-slot').innerHTML = flow.renderFooter();
+flow.hydrateChrome({ title: 'ご予約一覧 - HAVEN' });
+
+async function loadTickets() {
+  try {
+    const query = new URLSearchParams();
+    if (params.phone) query.set('phone', params.phone);
+    if (params.line_user_id) query.set('line_user_id', params.line_user_id);
+    if (params.email) query.set('email', params.email);
+    const res = await fetch(`https://cam.ainadevelop.com/api/guest/tickets?${query.toString()}`);
+    const data = await res.json();
+    tickets = res.ok && Array.isArray(data.tickets) ? data.tickets : flow.getTicketFallbackList();
+  } catch (_error) {
+    tickets = flow.getTicketFallbackList();
+  }
+  renderFilters();
+  renderSummary();
+  renderTickets();
+}
+
+function getPrimaryDate(ticket) {
+  return String(ticket.valid_from || ticket.checkin || ticket.purchased_at || '');
+}
+
+function formatDisplayDate(value) {
+  const text = String(value || '').trim();
+  if (!text) return isEn ? 'Not available' : '未設定';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return flow.formatDateJP(text);
+  const normalized = text.replace(' ', 'T');
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toLocaleString(isEn ? 'en-US' : 'ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+  return text;
+}
+
+function renderSummary() {
+  const root = document.getElementById('reservation-summary');
+  const upcoming = tickets
+    .filter((ticket) => String(ticket.status || 'unused') === 'unused')
+    .sort((a, b) => getPrimaryDate(a).localeCompare(getPrimaryDate(b)))[0];
+
+  if (!upcoming) {
+    root.innerHTML = `
+      <div class="help-text">${isEn ? 'No upcoming reservation was found.' : '次回のご予約はまだ見つかっていません。予約後はここに日時が表示されます。'}</div>
+    `;
+    return;
+  }
+
+  const whenLabel = formatDisplayDate(upcoming.valid_from || upcoming.checkin);
+  const untilLabel = formatDisplayDate(upcoming.valid_until || upcoming.checkout);
+  const unitLabel = upcoming.unit ? (isEn ? `Room ${upcoming.unit}` : `${upcoming.unit}号室`) : (isEn ? 'Room pending' : '部屋未設定');
+  const productLabel = upcoming.product_name || (isEn ? 'Reservation' : 'ご予約');
+  root.innerHTML = `
+    <div class="card" style="padding:14px 16px; background:#eef8f3; border:1px solid #d1eadc;">
+      <div style="font-size:12px; color:#4f7b66; font-weight:700;">${isEn ? 'NEXT RESERVATION' : '次のご予約'}</div>
+      <div style="margin-top:6px; font-size:20px; font-weight:700; color:#16392c;">${whenLabel}</div>
+      <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px;">
+        <span class="meta-tag">${productLabel}</span>
+        <span class="meta-tag">${unitLabel}</span>
+        <span class="meta-tag orange">${isEn ? 'Until' : 'ご利用期限'} ${untilLabel}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderFilters() {
+  const years = [...new Set(tickets.map((ticket) => String(ticket.checkin || '').slice(0, 4)).filter(Boolean))];
+  const yearSelect = document.getElementById('year-filter');
+  yearSelect.innerHTML = (isEn ? '<option value="">Filter by year</option>' : '<option value="">年絞り込み</option>')
+    + years.map((year) => `<option value="${year}">${isEn ? year : `${year}年`}</option>`).join('');
+  const facilities = [...new Set(tickets.map((ticket) => ticket.unit || 'HAVEN'))];
+  const allLabel = isEn ? 'All' : 'すべて';
+  document.getElementById('facility-tabs').innerHTML = [allLabel, ...facilities].map((facility, index) => `
+    <button type="button" class="filter-chip ${index === 0 ? 'is-active' : ''}" data-facility="${facility === allLabel ? '' : facility}">${facility}</button>
+  `).join('');
+  document.querySelectorAll('[data-facility]').forEach((button) => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('[data-facility]').forEach((node) => node.classList.remove('is-active'));
+      button.classList.add('is-active');
+      activeFacility = button.getAttribute('data-facility');
+      renderTickets();
+    });
+  });
+}
+
+function renderTickets() {
+  const selectedYear = document.getElementById('year-filter').value;
+  const filtered = tickets.filter((ticket) => {
+    if (activeStatus && String(ticket.status || 'unused') !== activeStatus) return false;
+    if (activeFacility && String(ticket.unit || '') !== activeFacility) return false;
+    if (selectedYear && !String(ticket.checkin || '').startsWith(selectedYear)) return false;
+    return true;
+  });
+  document.getElementById('ticket-list').innerHTML = filtered.length ? filtered.map((ticket) => `
+    <a class="ticket-card" href="./ticket-detail.html?booking_id=${encodeURIComponent(ticket.booking_id)}">
+      <div class="thumb"></div>
+      <div>
+        <h3>${ticket.product_name || (isEn ? 'HAVEN Stay Reservation' : 'HAVEN 宿泊予約')}</h3>
+        <div class="meta-tags">
+          <span class="meta-tag">${isEn ? `Room ${ticket.unit}` : `${ticket.unit}号室`}</span>
+          <span class="meta-tag">${flow.formatDateJP(ticket.checkin)}</span>
+          <span class="meta-tag">${isEn ? 'Purchased' : '購入日時'} ${String(ticket.purchased_at || '').slice(0, 16).replace('T', ' ') || '-'}</span>
+          <span class="meta-tag orange">${isEn ? 'Usage window' : '利用時間'} ${ticket.valid_from || ticket.checkin || '-'} ～ ${ticket.valid_until || ticket.checkout || '-'}</span>
+          <span class="meta-tag gray">${isEn ? 'Order ID' : '注文番号'} ${ticket.booking_id}</span>
+          ${ticket.unavailable_reason ? `<span class="meta-tag red">${isEn ? 'Unavailable' : '利用不可'}: ${ticket.unavailable_reason}</span>` : ''}
+        </div>
+      </div>
+    </a>
+  `).join('') : `<div class="card"><div class="help-text">${isEn ? 'No reservations to display.' : '表示できるご予約情報がありません。'}</div></div>`;
+}
+
+statusButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    statusButtons.forEach((node) => node.classList.remove('is-active'));
+    button.classList.add('is-active');
+    activeStatus = button.getAttribute('data-status');
+    renderTickets();
+  });
+});
+document.getElementById('year-filter').addEventListener('change', renderTickets);
+loadTickets();
+</script>
+</body>
+</html>

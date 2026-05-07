@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/$", "dest": "/index.html" },
+    { "src": "/reservation-summary(?:\\.html)?", "dest": "/cart.html" },
+    { "src": "/guest-details(?:\\.html)?", "dest": "/checkout.html" },
+    { "src": "/payment-method(?:\\.html)?", "dest": "/payment.html" },
+    { "src": "/reservation-confirm(?:\\.html)?", "dest": "/confirm.html" },
+    { "src": "/reservation-complete(?:\\.html)?", "dest": "/complete.html" },
+    { "src": "/reservations(?:\\.html)?", "dest": "/tickets.html" },
+    { "src": "/reservation-detail(?:\\.html)?", "dest": "/ticket-detail.html" },
+    { "src": "/reservation/share/([^/]+)", "dest": "/ticket-distribute.html?token=$1" },
+    { "src": "/ticket/distributes/([^/]+)", "dest": "/ticket-distribute.html?token=$1" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

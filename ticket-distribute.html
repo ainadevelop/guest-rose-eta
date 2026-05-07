@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共有されたご予約 - HAVEN</title>
+<script src="./flow.js"></script>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="topbar-row">
+        <a class="brand" href="./index.html"><span class="brand-mark">H</span><span>HAVEN</span></a>
+        <div class="topbar-actions">
+          <a class="icon-btn" href="./menu.html">ログイン</a>
+        </div>
+      </div>
+    </header>
+    <main>
+      <section class="card center">
+        <div id="distributed-view">読み込み中...</div>
+      </section>
+      <a class="btn-ghost" href="./index.html">トップページへ戻る</a>
+    </main>
+  </div>
+<script>
+const flow = window.SentinelGuestFlow;
+const token = new URLSearchParams(window.location.search).get('token') || '';
+async function init() {
+  try {
+    const res = await fetch(`https://cam.ainadevelop.com/api/guest/tickets/distributes/${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if (!res.ok || !data.ticket) throw new Error('invalid');
+    const ticket = data.ticket;
+    const qrUrl = flow.guestApiUrl(`/api/qr?data=${encodeURIComponent(`${window.location.origin}/ticket-detail.html?booking_id=${ticket.booking_id}`)}`);
+    document.getElementById('distributed-view').innerHTML = `
+      <div class="section-chip">共有されたご予約</div>
+      <div class="qr-box" style="margin-top:12px;"><img src="${qrUrl}" alt="distributed qr"></div>
+      <div class="meta-tags" style="justify-content:center; margin-top:12px;">
+        <span class="meta-tag">${ticket.unit}号室</span>
+        <span class="meta-tag">${flow.formatDateJP(ticket.checkin)}</span>
+        <span class="meta-tag gray">注文番号 ${ticket.booking_id}</span>
+      </div>
+    `;
+  } catch (_error) {
+    document.getElementById('distributed-view').innerHTML = `
+      <div style="font-size:24px; font-weight:800; color:var(--primary);">ページを表示できません。ご予約情報を表示できません。</div>
+    `;
+  }
+}
+init();
+</script>
+</body>
+</html>

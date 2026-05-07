@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="./app-config.js"></script>
+<script src="./liff.js"></script>
+<script>
+(async () => {
+  const cfg = await window.SentinelGuestConfig.load();
+  if (window.location.hostname === 'ainadevelop.github.io') {
+    window.location.replace(cfg.bookingOrigin + window.location.pathname.replace(/^\/detector\/guest/, '') + window.location.search + window.location.hash);
+  }
+})();
+</script>
+<meta name="description" content="HAVEN smart stay operations and entry management">
+<meta property="og:site_name" content="HAVEN">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HAVEN">
+<meta property="og:description" content="HAVEN smart stay operations and entry management">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231D9E75%27/%3E%3Cpath d=%27M18 33l9 9 19-20%27 stroke=%27white%27 stroke-width=%276%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+<title>LINE起動中 - HAVEN</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, sans-serif;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at top left, #d7f5e8, transparent 40%),
+    linear-gradient(180deg, #f6f8f7 0%, #edf3f0 100%);
+  color: #1a1f1c;
+}
+.card {
+  width: min(92vw, 440px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(29, 158, 117, 0.12);
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow: 0 20px 50px rgba(18, 34, 28, 0.08);
+}
+.brand {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: #1D9E75;
+  margin-bottom: 10px;
+}
+h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+p {
+  line-height: 1.7;
+  color: #52605a;
+  font-size: 14px;
+}
+.status {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f4fbf8;
+  color: #215b46;
+  font-size: 13px;
+}
+.actions {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 46px;
+  border-radius: 12px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.btn-primary {
+  background: #1D9E75;
+  color: #fff;
+}
+.btn-secondary {
+  background: #fff;
+  color: #1D9E75;
+  border: 1px solid #cfe8de;
+}
+.note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #647067;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">HAVEN</div>
+    <h1 id="page-heading">ページを開いています</h1>
+    <p id="page-desc">移動先のページを読み込んでいます。</p>
+    <div class="status" id="status">設定を確認しています...</div>
+    <div class="actions">
+      <a class="btn btn-primary" id="open-liff" href="#">ページを開く</a>
+      <a class="btn btn-secondary" id="open-web" href="./index.html">通常ページを開く</a>
+    </div>
+    <div class="note" id="help-note"></div>
+  </div>
+
+<script>
+const statusEl = document.getElementById('status');
+const openLiffEl = document.getElementById('open-liff');
+const openWebEl = document.getElementById('open-web');
+const helpNoteEl = document.getElementById('help-note');
+let guestConfig = window.SentinelGuestConfig.defaults;
+let redirectTimer = null;
+
+function setStatus(message) {
+  statusEl.textContent = message;
+}
+
+function scheduleRedirect(url) {
+  if (redirectTimer) {
+    clearTimeout(redirectTimer);
+  }
+  redirectTimer = window.setTimeout(() => {
+    window.location.replace(url);
+  }, 250);
+}
+
+function isLineInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  return /Line\//i.test(ua) || /\bLIFF\b/i.test(ua);
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(String(text || ''));
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function withPath(baseUrl, pathWithQuery) {
+  const normalizedBase = (baseUrl || '').replace(/\/+$/, '');
+  const normalizedPath = pathWithQuery.startsWith('/') ? pathWithQuery : '/' + pathWithQuery;
+  return normalizedBase + normalizedPath;
+}
+
+function mergeDraftQuery(targetUrl) {
+  const draftRaw = localStorage.getItem('sentinel_reservation_draft') || '';
+  if (!draftRaw) return;
+
+  const draftParams = new URLSearchParams(draftRaw);
+  for (const [key, value] of draftParams.entries()) {
+    if (!value) continue;
+    if (!targetUrl.searchParams.has(key)) {
+      targetUrl.searchParams.set(key, value);
+    }
+  }
+}
+
+/** Vercel 等でゲストアプリが /guest/ 配下のとき、target=/index.html だと誤ってルート直下になる。同一ホストのゲスト HTML なら /guest を付与する。 */
+function applyGuestPathPrefix(targetUrl) {
+  const linePath = window.location.pathname;
+  const baseDir = linePath.replace(/\/[^/]+$/, '');
+  if (!baseDir || baseDir === '/') return;
+  if (targetUrl.origin && targetUrl.origin !== window.location.origin) return;
+  const pn = targetUrl.pathname;
+  if (pn.startsWith(baseDir + '/')) return;
+  const guestHtml = /^\/(?:index|cart|checkout|payment|confirm|complete|tickets|menu|line|support|entry|facility|line-dashboard)\.html$/i;
+  if (guestHtml.test(pn.split('?')[0])) {
+    targetUrl.pathname = baseDir + pn;
+  }
+}
+
+async function enrichTargetQueryForComplete(targetUrl) {
+  const isCompletePage = /\/complete\.html$/i.test(targetUrl.pathname);
+  if (!isCompletePage) return;
+
+  targetUrl.searchParams.set('lookup', 'latest');
+
+  const phone = String(
+    targetUrl.searchParams.get('phone') ||
+    targetUrl.searchParams.get('phone_digits') ||
+    ''
+  ).replace(/\D/g, '');
+  if (phone) {
+    targetUrl.searchParams.set('phone', phone);
+  }
+
+  if (targetUrl.searchParams.get('line_user_id')) {
+    return;
+  }
+
+  if (!window.SentinelGuestLiff) {
+    return;
+  }
+
+  try {
+    const liffState = await window.SentinelGuestLiff.init(guestConfig);
+    if (liffState.initialized && liffState.userId) {
+      targetUrl.searchParams.set('line_user_id', String(liffState.userId).trim());
+      if (liffState.displayName && !targetUrl.searchParams.get('guest')) {
+        targetUrl.searchParams.set('guest', String(liffState.displayName).trim());
+      }
+    }
+  } catch (_error) {
+    // Continue without LIFF identity and fall back to phone lookup.
+  }
+}
+
+async function init() {
+  guestConfig = await window.SentinelGuestConfig.load();
+  const qs = new URLSearchParams(window.location.search);
+  const targetRaw = qs.get('target') || '/line-dashboard.html';
+  let decodedTarget = '/line-dashboard.html';
+  try {
+    decodedTarget = decodeURIComponent(targetRaw);
+  } catch (_) {
+    decodedTarget = targetRaw;
+  }
+
+  const PAGE_LABELS = {
+    '/support.html': { heading: 'お問い合わせページを開いています', desc: 'サポートページへ移動します。', btn: 'お問い合わせを開く' },
+    '/tickets.html': { heading: '予約確認ページを開いています', desc: '予約一覧ページへ移動します。', btn: '予約確認を開く' },
+    '/facility.html': { heading: '施設案内ページを開いています', desc: '施設情報ページへ移動します。', btn: '施設案内を開く' },
+    '/menu.html': { heading: 'メニューを開いています', desc: 'メニューページへ移動します。', btn: 'メニューを開く' },
+    '/index.html': { heading: '新規予約ページを開いています', desc: '予約ページへ移動します。決済は外部ブラウザで行います。', btn: '予約ページを開く' },
+  };
+  const baseName = decodedTarget.split('?')[0].replace(/^.*\/([^/]+)$/, '/$1');
+  const pageLabel = PAGE_LABELS[baseName] || { heading: 'ページを開いています', desc: '移動先のページを読み込んでいます。', btn: 'ページを開く' };
+  document.getElementById('page-heading').textContent = pageLabel.heading;
+  document.getElementById('page-desc').textContent = pageLabel.desc;
+  openLiffEl.textContent = pageLabel.btn;
+
+  const targetUrl = new URL(decodedTarget, window.location.origin);
+  for (const [key, value] of qs.entries()) {
+    if (key === 'target') continue;
+    if (!targetUrl.searchParams.has(key)) {
+      targetUrl.searchParams.set(key, value);
+    }
+  }
+  mergeDraftQuery(targetUrl);
+  applyGuestPathPrefix(targetUrl);
+  await enrichTargetQueryForComplete(targetUrl);
+  const finalTarget = targetUrl.pathname + targetUrl.search + targetUrl.hash;
+  const forceExternal = qs.get('external') === '1';
+
+  try {
+    const bookingUrl = withPath(
+      guestConfig.bookingUrl || `${guestConfig.bookingOrigin}/`,
+      finalTarget
+    );
+    openWebEl.href = bookingUrl;
+    openLiffEl.href = bookingUrl;
+    if (isLineInAppBrowser()) {
+      setStatus(`${pageLabel.heading.replace('を開いています', 'へ移動します')}`);
+      helpNoteEl.textContent = '支払い画面では「決済URLをコピー」を押し、Chrome/Safari に貼り付けて決済してください。';
+      if (forceExternal) {
+        const copied = await copyText(bookingUrl);
+        setStatus('外部ブラウザ自動起動は無効です。URLをコピーして Chrome/Safari で開いてください。');
+        helpNoteEl.textContent = copied
+          ? '予約URLをコピーしました。Chrome/Safari に貼り付けて開いてください。'
+          : 'ボタンを長押ししてURLをコピーし、Chrome/Safari に貼り付けて開いてください。';
+        openLiffEl.textContent = '予約URLをコピーする';
+        openLiffEl.onclick = async (event) => {
+          event.preventDefault();
+          const ok = await copyText(bookingUrl);
+          alert(ok
+            ? '予約URLをコピーしました。Chrome/Safari に貼り付けて開いてください。'
+            : 'コピーに失敗しました。ボタンを長押ししてURLをコピーしてください。');
+        };
+        return;
+      }
+      scheduleRedirect(bookingUrl);
+      return;
+    }
+
+    setStatus('ページを開く準備ができました。');
+    scheduleRedirect(bookingUrl);
+  } catch (error) {
+    setStatus(error.message || 'LINE起動に失敗しました。');
+    openLiffEl.href = './index.html';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINEダッシュボード - HAVEN</title>
+<script src="./app-config.js"></script>
+<script src="./liff.js"></script>
+<script src="./flow.js"></script>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="topbar-row">
+        <a class="brand" href="./line-dashboard.html">
+          <span class="brand-mark">H</span>
+          <span>HAVEN</span>
+        </a>
+        <div class="topbar-actions">
+          <a class="icon-btn" href="./menu.html">☰</a>
+        </div>
+      </div>
+      <div class="guest-strip" data-guest-strip>
+        <strong>LINEダッシュボード</strong>
+        <div>URL 集約と軽量ステータス確認</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-card">
+        <div class="eyebrow">LINE ENTRY HUB</div>
+        <h1 class="page-title">LINE用の入口ダッシュボード</h1>
+        <p class="lead">予約導線の URL をここに集約します。LINE 側では過度な通知を出さず、アラートや運用通知は Discord に寄せる前提です。</p>
+        <div class="meta-tags" style="margin-top:14px;">
+          <span class="meta-tag">通知は Discord 運用</span>
+          <span class="meta-tag gray">LINE は導線のみ</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">クイック導線</div>
+        <div class="grid" id="quick-links"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">運用ステータス</div>
+        <div class="summary-box" id="state-box">
+          <div class="summary-line"><span>取得中</span><span>...</span></div>
+        </div>
+        <div class="summary-box" style="margin-top:12px;" id="notify-box">
+          <div class="summary-line"><span>通知方針</span><strong>Discord 中心</strong></div>
+          <div class="help-text" id="notify-text">設定を確認しています。</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">最近のイベント</div>
+        <div class="grid" id="timeline-list">
+          <div class="help-text">読み込み中...</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-chip">LINE導線管理</div>
+        <div class="field">
+          <label for="line-target">LINE で開く URL</label>
+          <input class="input" id="line-target" readonly>
+        </div>
+        <div class="actions-row" style="margin-top:12px;">
+          <button class="btn-outline" type="button" id="copy-line-link">リンクをコピー</button>
+          <a class="btn primary" id="open-line-link" href="./line.html?target=%2Fline-dashboard.html">LINE導線を開く</a>
+        </div>
+        <div class="help-text" style="margin-top:10px;">LINE のリッチメニューや固定メッセージにはこの URL を置くと、予約 URL 群の入口を一か所にまとめられます。</div>
+      </section>
+    </main>
+
+    <div id="footer-slot"></div>
+  </div>
+
+<script>
+const flow = window.SentinelGuestFlow;
+document.getElementById('footer-slot').innerHTML = flow.renderFooter();
+flow.hydrateChrome({ title: 'LINEダッシュボード - HAVEN' });
+
+const quickLinks = [
+  { href: './index.html', title: '新規宿泊予約', desc: 'お部屋選択から予約を開始します。' },
+  { href: './cart.html', title: '予約内容確認', desc: '現在の入力内容と予約導線を確認します。' },
+  { href: './tickets.html', title: 'ご予約一覧', desc: '予約済みの QR や明細を確認します。' },
+  { href: './support.html', title: 'お問い合わせ', desc: 'サポートページと連絡先を開きます。' },
+  { href: './menu.html', title: 'メニュー', desc: 'その他の導線を一覧で表示します。' }
+];
+
+document.getElementById('quick-links').innerHTML = quickLinks.map((item) => `
+  <a class="ticket-card" href="${item.href}">
+    <div>
+      <h3>${item.title}</h3>
+      <div class="help-text">${item.desc}</div>
+    </div>
+  </a>
+`).join('');
+
+async function loadDashboard() {
+  const cfg = await window.SentinelGuestConfig.load();
+  const base = cfg.apiBaseUrl.replace(/\/+$/, '');
+
+  const [stateRes, settingsRes, timelineRes] = await Promise.allSettled([
+    fetch(`${base}/api/state`),
+    fetch(`${base}/api/settings-status`),
+    fetch(`${base}/api/timeline`)
+  ]);
+
+  if (stateRes.status === 'fulfilled' && stateRes.value.ok) {
+    const state = await stateRes.value.json();
+    document.getElementById('state-box').innerHTML = `
+      <div class="summary-line"><span>ドア状態</span><strong>${state.locked ? 'Locked' : 'Unlocked'}</strong></div>
+      <div class="summary-line"><span>現在人数</span><span>${state.person_count ?? 0}</span></div>
+      <div class="summary-line"><span>本日利用</span><span>${state.today_count ?? 0}</span></div>
+      <div class="summary-line"><span>アラート数</span><span>${state.alert_count ?? 0}</span></div>
+    `;
+  } else {
+    document.getElementById('state-box').innerHTML = '<div class="help-text">システム状態を取得できませんでした。</div>';
+  }
+
+  if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
+    const settings = await settingsRes.value.json();
+    const lineConfigured = settings.notifications?.line_configured ? '有効' : '未設定';
+    const discordConfigured = settings.notifications?.support_webhook_configured ? '有効' : '未設定';
+    const lineDelivery = settings.notifications?.line_delivery_status || {};
+    const lineNotice = lineDelivery.status === 'limited'
+      ? `LINE通知状態: 上限到達<br>${lineDelivery.message.replace(/\n/g, '<br>')}`
+      : `LINE通知状態: ${lineConfigured}`;
+    document.getElementById('notify-text').innerHTML = `${lineNotice}<br>Discord 通知設定: ${discordConfigured}<br>運用上の細かい通知は Discord に集約する前提です。`;
+  } else {
+    document.getElementById('notify-text').textContent = '通知設定を取得できませんでした。';
+  }
+
+  if (timelineRes.status === 'fulfilled' && timelineRes.value.ok) {
+    const timeline = await timelineRes.value.json();
+    const items = Array.isArray(timeline) ? timeline.slice(0, 5) : [];
+    document.getElementById('timeline-list').innerHTML = items.length ? items.map((item) => `
+      <div class="summary-box">
+        <div style="font-weight:800;">${item.title || 'イベント'}</div>
+        <div class="help-text" style="margin-top:6px;">${item.summary || ''}</div>
+        <div class="help-text" style="margin-top:6px;">${String(item.created_at || '').replace('T', ' ').slice(0, 16)}</div>
+      </div>
+    `).join('') : '<div class="help-text">表示できるイベントはありません。</div>';
+  } else {
+    document.getElementById('timeline-list').innerHTML = '<div class="help-text">最近のイベントを取得できませんでした。</div>';
+  }
+}
+
+const lineDir = window.location.pathname.slice(0, window.location.pathname.lastIndexOf('/'));
+const lineEntryUrl = `${window.location.origin}${lineDir}/line.html?target=${encodeURIComponent('/line-dashboard.html')}`;
+document.getElementById('line-target').value = lineEntryUrl;
+document.getElementById('open-line-link').href = lineEntryUrl;
+document.getElementById('copy-line-link').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(lineEntryUrl);
+    document.getElementById('copy-line-link').textContent = 'コピーしました';
+    setTimeout(() => {
+      document.getElementById('copy-line-link').textContent = 'リンクをコピー';
+    }, 1500);
+  } catch (_error) {
+    alert('コピーできない場合は表示されている URL を長押しでコピーしてください。');
+  }
+});
+
+loadDashboard().catch(() => {
+  document.getElementById('timeline-list').innerHTML = '<div class="help-text">ダッシュボード情報を取得できませんでした。</div>';
+});
+</script>
+</body>
+</html>
